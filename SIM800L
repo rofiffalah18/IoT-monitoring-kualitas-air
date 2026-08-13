@@ -1,0 +1,91 @@
+#include <HardwareSerial.h>
+
+// --- PIN SERIAL SIM800L (HardwareSerial 1) ---
+#define SIM800_RX_PIN 17  // ESP32 RX1 -> Ke TX SIM800L
+#define SIM800_TX_PIN 4   // ESP32 TX1 -> Ke RX SIM800L
+
+// Inisialisasi HardwareSerial untuk SIM800L
+HardwareSerial simSerial(1);
+
+// Nomor HP Tujuan SMS (Ganti sesuai nomor Anda dengan format +62)
+String nomorTujuan = "+6281234567890"; 
+
+
+// ============================================================
+// FUNGSIONALITAS UTAMA: KIRIM SMS DATA SENSOR
+// ============================================================
+void kirimSMS(String pesan) {
+  Serial.println("[SIM800L] Mengirim SMS...");
+
+  simSerial.println("AT+CMGF=1"); // Set mode SMS ke TEXT
+  delay(1000);
+
+  simSerial.print("AT+CMGS=\"");
+  simSerial.print(nomorTujuan);
+  simSerial.println("\"");
+  delay(1000);
+
+  simSerial.print(pesan); // Isi pesan SMS
+  delay(500);
+
+  simSerial.write(26); // Kirim karakter CTRL+Z (ASCII 26) untuk mengirim SMS
+  delay(5000);
+
+  Serial.println("[SIM800L] SMS Terkirim / Selesai diproses.");
+}
+
+
+// ============================================================
+// SINGLE VOID: CEK STATUS SIM800L
+// ============================================================
+void sim800l() {
+  Serial.println("\n[SIM800L] Memeriksa status modul...");
+
+  // Tes Komunikasi AT
+  simSerial.println("AT");
+  delay(1000);
+
+  // Cek Status Kartu SIM
+  simSerial.println("AT+CPIN?");
+  delay(1000);
+
+  // Cek Sinyal GSM (0-31, makin tinggi makin bagus)
+  simSerial.println("AT+CSQ");
+  delay(1000);
+
+  // Tampilkan respon dari SIM800L ke Serial Monitor ESP32
+  while (simSerial.available()) {
+    String respon = simSerial.readString();
+    Serial.print("[RESPON SIM800L]: ");
+    Serial.println(respon);
+  }
+}
+
+
+// ============================================================
+// SETUP & LOOP
+// ============================================================
+void setup() {
+  Serial.begin(115200);
+
+  // Inisialisasi Serial SIM800L pada Baudrate 9600
+  simSerial.begin(9600, SERIAL_8N1, SIM800_RX_PIN, SIM800_TX_PIN);
+
+  Serial.println("\n--- Pengujian Modul GSM SIM800L (GPIO 17 & 4) ---");
+  delay(3000); // Tunggu SIM800L selesai booting/mencari sinyal
+
+  sim800l(); // Cek koneksi awal
+
+  // Contoh Mengirim SMS
+  // kirimSMS("Sistem Monitoring Air Aktif. Semua Sensor Normal.");
+}
+
+void loop() {
+  // Hanya membaca balasan/respon jika ada SMS masuk / perintah manual
+  if (simSerial.available()) {
+    Serial.write(simSerial.read());
+  }
+  if (Serial.available()) {
+    simSerial.write(Serial.read());
+  }
+}
