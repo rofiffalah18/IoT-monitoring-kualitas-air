@@ -39,20 +39,13 @@ function formatTimeLabels(dataArr, timeframe) {
     const dateObj = new Date(d.timestamp);
     const isValidDate = !isNaN(dateObj.getTime());
 
-    // 1. PER JAM -> Angka Menit saja (contoh: 0, 5, 10, 15)
     if (timeframe === 'jam') {
       return isValidDate ? dateObj.getMinutes() : String(d.timestamp);
-    } 
-    // 2. HARI INI -> Angka Jam saja (contoh: 1, 2, 3 ... 24)
-    else if (timeframe === 'hari') {
+    } else if (timeframe === 'hari') {
       return isValidDate ? dateObj.getHours() : String(d.timestamp);
-    } 
-    // 3. 7 HARI -> Nama Hari saja (contoh: Senin, Selasa, Rabu)
-    else if (timeframe === 'minggu') {
+    } else if (timeframe === 'minggu') {
       return isValidDate ? namaHariFull[dateObj.getDay()] : String(d.timestamp);
-    } 
-    // 4. 30 HARI -> Angka Tanggal saja (contoh: 1, 2, 3 ... 31)
-    else if (timeframe === 'bulan') {
+    } else if (timeframe === 'bulan') {
       return isValidDate ? dateObj.getDate() : String(d.timestamp);
     }
     return String(d.timestamp);
@@ -81,7 +74,7 @@ function getFilteredDataByTimeframe(timeframe) {
   return globalAllData.slice(-12);
 }
 
-// Helper 4: Opsi Standar Chart.js dengan Judul Sumbu X dan Y
+// Helper 4: Opsi Standar Chart.js
 function createChartOptions(yAxisTitle) {
   return {
     responsive: true,
@@ -104,6 +97,69 @@ function createChartOptions(yAxisTitle) {
       }
     }
   };
+}
+
+// Helper 5: Pengecekan Status ESP32 (Termasuk Jam Kerja 06:00 - 18:00)
+function checkESP32Status(lastTimestamp) {
+  const statusDot = document.getElementById('connection-status-dot');
+  if (!statusDot || !lastTimestamp) return;
+
+  const now = new Date();
+  const currentHour = now.getHours();
+
+  // Cek jika di luar jam operasional (18.00 sore - 06.00 pagi)
+  if (currentHour < 6 || currentHour >= 18) {
+    statusDot.className = "status-indicator offline";
+    statusDot.innerText = "ESP32 Standby (Luar Jam Kerja)";
+    return;
+  }
+
+  // Jika dalam jam kerja (06.00 - 18.00), cek toleransi keterlambatan 35 menit
+  const lastDataTime = new Date(lastTimestamp);
+  const diffInMinutes = (now - lastDataTime) / (1000 * 60);
+
+  if (diffInMinutes > 35 || isNaN(diffInMinutes)) {
+    statusDot.className = "status-indicator offline";
+    statusDot.innerText = "ESP32 Offline";
+  } else {
+    statusDot.className = "status-indicator online";
+    statusDot.innerText = "ESP32 Online";
+  }
+}
+
+// Helper 6: Rekomendasi & Analisis Kualitas Air Dinamis
+function updateStatusRecommendation(lastData) {
+  const doVal = Number(lastData.do) || 0;
+  const suhu1 = Number(lastData.suhu1) || 0;
+  const suhu3 = Number(lastData.suhu3) || 0;
+
+  // Analisis Oksigen Terlarut (DO)
+  const elMsgDO = document.getElementById('msg-oksigen');
+  if (elMsgDO) {
+    if (doVal < 4.0) {
+      elMsgDO.innerText = `Kadar oksigen rendah (${doVal} ppm). Segera nyalakan/tambah kecepatan aerator!`;
+      elMsgDO.style.color = '#dc2626';
+    } else if (doVal >= 4.0 && doVal <= 6.5) {
+      elMsgDO.innerText = `Kadar oksigen normal (${doVal} ppm). Kondisi air optimal.`;
+      elMsgDO.style.color = '#16a34a';
+    } else {
+      elMsgDO.innerText = `Kadar oksigen terlalu tinggi (${doVal} ppm). Kurangi kecepatan aerator/kincir air!`;
+      elMsgDO.style.color = '#d97706';
+    }
+  }
+
+  // Analisis Stratifikasi Suhu
+  const elMsgSuhu = document.getElementById('msg-stratifikasi');
+  if (elMsgSuhu) {
+    const diffSuhu = Math.abs(suhu1 - suhu3);
+    if (diffSuhu >= 1.5) {
+      elMsgSuhu.innerText = `Terjadi stratifikasi suhu kolam (Selisih: ${diffSuhu.toFixed(1)} °C). Perlu pengadukan air!`;
+      elMsgSuhu.style.color = '#dc2626';
+    } else {
+      elMsgSuhu.innerText = `Tidak ada stratifikasi suhu signifikan. Air kolam tercampur baik.`;
+      elMsgSuhu.style.color = '#16a34a';
+    }
+  }
 }
 
 // ==========================================
@@ -211,7 +267,6 @@ function filterSingleChart(chartType, timeframe, evt) {
 
 function renderActivityHistory(dataArray) {
   const tableBody = document.getElementById('log-table-body');
-  const statusDot = document.getElementById('connection-status-dot');
   if (!tableBody) return;
 
   if (!dataArray || dataArray.length === 0) {
@@ -221,53 +276,54 @@ function renderActivityHistory(dataArray) {
           Belum ada riwayat aktivitas data.
         </td>
       </tr>`;
-    if (statusDot) {
-      statusDot.className = "status-indicator offline";
-      statusDot.innerText = "ESP32 Offline";
-    }
     renderPaginationControls(0);
     return;
   }
 
-  // Update indikator status ESP32 di header
-  if (statusDot) {
-    statusDot.className = "status-indicator online";
-    statusDot.innerText = "ESP32 Online";
-  }
-
-  // Urutkan data dari yang paling baru
   const reversedData = [...dataArray].reverse();
   const totalItems = reversedData.length;
   const totalPages = Math.ceil(totalItems / rowsPerPage);
 
-  // Validasi batas halaman aktif
   if (currentPage > totalPages) currentPage = totalPages;
   if (currentPage < 1) currentPage = 1;
 
-  // Hitung indeks baris untuk paginasi 15 data
   const startIndex = (currentPage - 1) * rowsPerPage;
   const endIndex = startIndex + rowsPerPage;
   const paginatedLogs = reversedData.slice(startIndex, endIndex);
 
+  const now = new Date();
+  const currentHour = now.getHours();
+  const isWorkHours = currentHour >= 6 && currentHour < 18;
+
   let htmlContent = '';
-  paginatedLogs.forEach(item => {
+  paginatedLogs.forEach((item, index) => {
+    // Deteksi jika data paling atas terjadi di luar jam kerja
+    const isLatestAndOff = (index === 0) && !isWorkHours;
+
     htmlContent += `
       <tr>
         <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;">${item.timestamp || '-'}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;"><span style="color:#0284c7; font-weight:600;">Aktif</span></td>
-        <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;"><span style="color:#16a34a; font-weight:600;">Online</span></td>
-        <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;">Pengiriman data sensor berhasil</td>
+        <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;">
+          <span style="color:${isLatestAndOff ? '#64748b' : '#0284c7'}; font-weight:600;">
+            ${isLatestAndOff ? 'Non-Aktif' : 'Aktif'}
+          </span>
+        </td>
+        <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;">
+          <span style="color:${isLatestAndOff ? '#d97706' : '#16a34a'}; font-weight:600;">
+            ${isLatestAndOff ? 'Standby' : 'Online'}
+          </span>
+        </td>
+        <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;">
+          ${isLatestAndOff ? 'ESP32 mati (Luar jam operasional 06:00-18:00)' : 'Pengiriman data sensor berhasil'}
+        </td>
       </tr>
     `;
   });
 
   tableBody.innerHTML = htmlContent;
-
-  // Tampilkan kontrol navigasi halaman di bawah tabel
   renderPaginationControls(totalPages);
 }
 
-// Helper untuk Render Tombol Navigasi Halaman
 function renderPaginationControls(totalPages) {
   let paginationContainer = document.getElementById('pagination-container');
   
@@ -305,7 +361,6 @@ function renderPaginationControls(totalPages) {
   `;
 }
 
-// Fungsi Navigasi Pindah Halaman
 function changePage(direction) {
   currentPage += direction;
   renderActivityHistory(globalAllData);
@@ -335,18 +390,28 @@ async function loadDataFromGoogleSheets() {
 
     if (globalAllData.length === 0) {
       renderActivityHistory([]);
+      if (statusDot) {
+        statusDot.className = "status-indicator offline";
+        statusDot.innerText = "ESP32 Offline";
+      }
       return;
     }
 
     const lastData = globalAllData[globalAllData.length - 1];
 
-    // Update Teks Terakhir Diperbarui (jika elemen tersedia)
+    // Cek Status Online/Standby/Offline
+    checkESP32Status(lastData.timestamp);
+
+    // Update Teks Rekomendasi
+    updateStatusRecommendation(lastData);
+
+    // Update Teks Terakhir Diperbarui
     const txtLastUpdate = document.getElementById('txt-last-update');
     if (txtLastUpdate) {
       txtLastUpdate.innerText = "TERAKHIR DIPERBARUI: " + (lastData.timestamp || '-');
     }
 
-    // Update Kartu Nilai Sensor
+    // Update Kartu Nilai Sensor Real-time
     if (document.getElementById('val-suhu1')) document.getElementById('val-suhu1').innerText = lastData.suhu1 ?? 0;
     if (document.getElementById('val-suhu2')) document.getElementById('val-suhu2').innerText = lastData.suhu2 ?? 0;
     if (document.getElementById('val-suhu3')) document.getElementById('val-suhu3').innerText = lastData.suhu3 ?? 0;
@@ -354,7 +419,7 @@ async function loadDataFromGoogleSheets() {
     if (document.getElementById('val-ph')) document.getElementById('val-ph').innerText = lastData.ph ?? 0;
     if (document.getElementById('val-kedalaman')) document.getElementById('val-kedalaman').innerText = lastData.kedalaman ?? 0;
 
-    // Refresh Grafik & Tabel Riwayat
+    // Refresh Grafik & Tabel Riwayat Log
     updateAllCharts();
     renderActivityHistory(globalAllData);
 
@@ -382,5 +447,5 @@ async function loadDataFromGoogleSheets() {
 window.onload = () => {
   initCharts();
   loadDataFromGoogleSheets();
-  setInterval(loadDataFromGoogleSheets, 10000);
+  setInterval(loadDataFromGoogleSheets, 10000); // Polling data tiap 10 detik
 };
