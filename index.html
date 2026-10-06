@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Feeder - Monitoring Kualitas Air</title>
+
+  <!-- Google Fonts & Chart.js CDN -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- File CSS Terpisah -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- HEADER -->
+    <header>
+      <div class="brand">
+        <div class="brand-logo">💧</div>
+        <div class="brand-title">
+          <h1>Smart Feeder</h1>
+          <p>Pemantauan Kualitas Air Real-time Berbasis IoT</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <div class="last-update" id="txt-last-update">TERAKHIR DIPERBARUI: Loading...</div>
+        <button class="btn-download" onclick="downloadCSV()">
+          <span>📄</span> Unduh CSV
+        </button>
+      </div>
+    </header>
+
+    <!-- DASHBOARD BAGIAN ATAS (GRID 2 KOLOM) -->
+    <div class="top-grid">
+      
+      <!-- KOTAK KIRI: INDEKS KUALITAS & SARAN -->
+      <div class="main-status-card">
+        <div class="status-head">
+          <div>
+            <div class="index-label">INDEKS KUALITAS</div>
+            <div class="index-value" id="val-indeks">74.1</div>
+          </div>
+          <span class="badge-status waspada" id="badge-status">Waspada</span>
+        </div>
+
+        <div class="alert-box" id="box-saran-oksigen">
+          <span id="txt-saran-oksigen">Kadar oksigen terlalu tinggi (7.0 ppm). Kurangi kecepatan aerator/kincir air!</span>
+        </div>
+
+        <div class="info-box" id="box-saran-suhu">
+          <strong>Stratifikasi Suhu Kolam:</strong><br>
+          <span id="txt-saran-suhu">Tidak ada stratifikasi suhu signifikan. Air kolam tercampur baik.</span>
+        </div>
+      </div>
+
+      <!-- KOTAK KANAN: KARTU INDIKATOR SENSOR (GRID 3x2) -->
+      <div class="sensors-section">
+        <h3>Data Sensor Terkini</h3>
+        <div class="sensor-grid">
+          
+          <!-- Suhu Permukaan -->
+          <div class="sensor-card">
+            <div class="sensor-title">Suhu Permukaan</div>
+            <div class="sensor-value-box">
+              <span class="sensor-val" id="val-suhu1">28.2</span>
+              <span class="sensor-unit">°C</span>
+            </div>
+            <div class="sensor-subtext">Sensor Suhu Atas</div>
+            <div class="sensor-icon">🌡️</div>
+          </div>
+
+          <!-- Suhu Kolom -->
+          <div class="sensor-card">
+            <div class="sensor-title">Suhu Kolom</div>
+            <div class="sensor-value-box">
+              <span class="sensor-val" id="val-suhu2">27.6</span>
+              <span class="sensor-unit">°C</span>
+            </div>
+            <div class="sensor-subtext">Sensor Suhu Tengah</div>
+            <div class="sensor-icon">🌡️</div>
+          </div>
+
+          <!-- Suhu Dasar -->
+          <div class="sensor-card">
+            <div class="sensor-title">Suhu Dasar</div>
+            <div class="sensor-value-box">
+              <span class="sensor-val" id="val-suhu3">26.7</span>
+              <span class="sensor-unit">°C</span>
+            </div>
+            <div class="sensor-subtext">Sensor Suhu Bawah</div>
+            <div class="sensor-icon">🌡️</div>
+          </div>
+
+          <!-- Oksigen Terlarut (DO) -->
+          <div class="sensor-card">
+            <div class="sensor-title">Oksigen Terlarut (DO)</div>
+            <div class="sensor-value-box">
+              <span class="sensor-val" id="val-do">7.0</span>
+              <span class="sensor-unit">ppm</span>
+            </div>
+            <div class="sensor-subtext">Kadar Oksigen</div>
+            <div class="sensor-icon">🫧</div>
+          </div>
+
+          <!-- pH Air -->
+          <div class="sensor-card">
+            <div class="sensor-title">pH Air</div>
+            <div class="sensor-value-box">
+              <span class="sensor-val" id="val-ph">7.1</span>
+            </div>
+            <div class="sensor-subtext">Derajat Keasaman</div>
+            <div class="sensor-icon">🧪</div>
+          </div>
+
+          <!-- Kedalaman Air -->
+          <div class="sensor-card">
+            <div class="sensor-title">Kedalaman</div>
+            <div class="sensor-value-box">
+              <span class="sensor-val" id="val-kedalaman">2.3</span>
+              <span class="sensor-unit">m</span>
+            </div>
+            <div class="sensor-subtext">Ketinggian Air</div>
+            <div class="sensor-icon">📏</div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SECTION GRAFIK TREN -->
+    <div class="charts-grid">
+      
+      <!-- Grafik 1: Tren Suhu -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">Tren Suhu</div>
+        </div>
+        <div class="chart-box">
+          <canvas id="chartSuhu"></canvas>
+        </div>
+      </div>
+
+      <!-- Grafik 2: Tren Oksigen -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">Tren Oksigen (DO)</div>
+        </div>
+        <div class="chart-box">
+          <canvas id="chartDO"></canvas>
+        </div>
+      </div>
+
+      <!-- Grafik 3 & 4 (Baris Bawah 2 Kolom) -->
+      <div class="bottom-charts-grid">
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Tren pH Air</div>
+          </div>
+          <div class="chart-box">
+            <canvas id="chartPH"></canvas>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header">
+            <div class="chart-title">Kedalaman Air</div>
+          </div>
+          <div class="chart-box">
+            <canvas id="chartKedalaman"></canvas>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SECTION HISTORI LOG KONEKSI & UPDATE (BAGIAN BAWAH GRAFIK) -->
+    <div class="log-card">
+      <div class="log-header">
+        <div class="log-title">📋 Riwayat Aktivitas & Status Koneksi ESP32</div>
+        <span class="status-indicator online" id="connection-status-dot">ESP32 Online</span>
+      </div>
+      <div class="table-responsive">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>Waktu Log</th>
+              <th>Status Perangkat / Web</th>
+              <th>Status ESP32</th>
+              <th>Keterangan Aktivitas</th>
+            </tr>
+          </thead>
+          <tbody id="log-table-body">
+            <tr>
+              <td colspan="4" style="text-align:center; color:#94a3b8;">Memuat riwayat koneksi...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- File JavaScript Terpisah -->
+  <script src="script.js"></script>
+</body>
+</html>
