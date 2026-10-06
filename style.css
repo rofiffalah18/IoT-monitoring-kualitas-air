@@ -222,9 +222,10 @@ header {
 .sensor-title {
   font-size: 11px;
   font-weight: 700;
-  color: #94a3b8;
-  text-transform: uppercase;
-  margin-bottom: 8px;
+  color: #64748b;
+  line-height: 1.3;
+  word-break: break-word; /* Memutus kata dengan rapi jika terlalu panjang */
+  flex: 1; /* Mengambil sisa ruang kosong di sebelah kiri ikon */
 }
 
 .sensor-value-box {
@@ -252,10 +253,9 @@ header {
 }
 
 .sensor-icon {
-  position: absolute;
-  top: 18px;
-  right: 18px;
-  font-size: 20px;
+  font-size: 18px;
+  flex-shrink: 0; /* Mencegah ikon tertekan/mengecil */
+  line-height: 1;
 }
 
 /* SECTION GRAFIK */
@@ -397,5 +397,15 @@ header {
   .header-actions {
     width: 100%;
     justify-content: space-between;
+  }
+}
+
+@media (max-width: 480px) {
+  .sensor-title {
+    font-size: 10px; /* Ukuran font sedikit diperkecil khusus layar HP */
+  }
+  
+  .sensor-card {
+    padding: 12px; /* Mengurangi padding kartu agar ruang konten lebih luas */
   }
 }

@@ -143,8 +143,9 @@
         <div class="chart-header">
           <h3>Tren Suhu</h3>
           <div class="chart-filter-container">
-            <button class="btn-filter filter-suhu active" onclick="filterSingleChart('suhu', 'hari', event)">Hari
-              Ini</button>
+            <button class="btn-filter filter-suhu active" onclick="filterSingleChart('suhu', 'jam', event)">Per
+              Jam</button>
+            <button class="btn-filter filter-suhu" onclick="filterSingleChart('suhu', 'hari', event)">Hari Ini</button>
             <button class="btn-filter filter-suhu" onclick="filterSingleChart('suhu', 'minggu', event)">7 Hari</button>
             <button class="btn-filter filter-suhu" onclick="filterSingleChart('suhu', 'bulan', event)">30 Hari</button>
           </div>
@@ -157,8 +158,8 @@
         <div class="chart-header">
           <h3>Tren Oksigen Terlarut (DO)</h3>
           <div class="chart-filter-container">
-            <button class="btn-filter filter-do active" onclick="filterSingleChart('do', 'hari', event)">Hari
-              Ini</button>
+            <button class="btn-filter filter-do active" onclick="filterSingleChart('do', 'jam', event)">Per Jam</button>
+            <button class="btn-filter filter-do" onclick="filterSingleChart('do', 'hari', event)">Hari Ini</button>
             <button class="btn-filter filter-do" onclick="filterSingleChart('do', 'minggu', event)">7 Hari</button>
             <button class="btn-filter filter-do" onclick="filterSingleChart('do', 'bulan', event)">30 Hari</button>
           </div>
@@ -171,8 +172,8 @@
         <div class="chart-header">
           <h3>Tren pH Air</h3>
           <div class="chart-filter-container">
-            <button class="btn-filter filter-ph active" onclick="filterSingleChart('ph', 'hari', event)">Hari
-              Ini</button>
+            <button class="btn-filter filter-ph active" onclick="filterSingleChart('ph', 'jam', event)">Per Jam</button>
+            <button class="btn-filter filter-ph" onclick="filterSingleChart('ph', 'hari', event)">Hari Ini</button>
             <button class="btn-filter filter-ph" onclick="filterSingleChart('ph', 'minggu', event)">7 Hari</button>
             <button class="btn-filter filter-ph" onclick="filterSingleChart('ph', 'bulan', event)">30 Hari</button>
           </div>
@@ -186,7 +187,9 @@
           <h3>Tren Kedalaman</h3>
           <div class="chart-filter-container">
             <button class="btn-filter filter-kedalaman active"
-              onclick="filterSingleChart('kedalaman', 'hari', event)">Hari Ini</button>
+              onclick="filterSingleChart('kedalaman', 'jam', event)">Per Jam</button>
+            <button class="btn-filter filter-kedalaman" onclick="filterSingleChart('kedalaman', 'hari', event)">Hari
+              Ini</button>
             <button class="btn-filter filter-kedalaman" onclick="filterSingleChart('kedalaman', 'minggu', event)">7
               Hari</button>
             <button class="btn-filter filter-kedalaman" onclick="filterSingleChart('kedalaman', 'bulan', event)">30
