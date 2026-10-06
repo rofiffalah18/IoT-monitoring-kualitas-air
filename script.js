@@ -1,9 +1,7 @@
-// URL Web App Google Apps Script Milikmu
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOC0765Q0jINi5kOR5QyvA_nUyAyEp5g0oFE64U-sLyx8IgtdPZlOqbbVZ5kSYAm-O1w/exec";
 
 let chartSuhu, chartDO, chartPH, chartKedalaman;
 
-// 1. INISIALISASI GRAFIK CHART.JS
 function initCharts() {
   const defaultLabels = ['--:--', '--:--', '--:--', '--:--'];
 
@@ -48,7 +46,6 @@ function initCharts() {
   });
 }
 
-// 2. FUNGSI AMBIL DATA REAL-TIME DARI GOOGLE SHEETS
 async function loadDataFromGoogleSheets() {
   if (!GOOGLE_SCRIPT_URL) return;
 
@@ -62,38 +59,38 @@ async function loadDataFromGoogleSheets() {
     // Ambil data terbaru (baris paling bawah)
     const lastData = dataArr[dataArr.length - 1];
 
-    // Deteksi Status Online/Offline ESP32 (Jika data > 3 menit tidak update)
+    // Cek Indikator Online / Offline
     const lastTime = new Date(lastData.timestamp).getTime();
     const nowTime = new Date().getTime();
     const diffMinutes = (nowTime - lastTime) / (1000 * 60);
 
     const dot = document.getElementById('connection-status-dot');
-    if (isNaN(diffMinutes) || diffMinutes > 3) {
-      if (dot) {
+    if (dot) {
+      if (isNaN(diffMinutes) || diffMinutes > 5) {
         dot.className = "status-indicator offline";
         dot.innerText = "ESP32 Offline";
-      }
-    } else {
-      if (dot) {
+      } else {
         dot.className = "status-indicator online";
         dot.innerText = "ESP32 Online";
       }
     }
 
-    // Update Angka Indikator Sensor
-    document.getElementById('txt-last-update').innerText = "TERAKHIR DIPERBARUI: " + lastData.timestamp;
-    document.getElementById('val-suhu1').innerText = lastData.suhu1;
-    document.getElementById('val-suhu2').innerText = lastData.suhu2;
-    document.getElementById('val-suhu3').innerText = lastData.suhu3;
-    document.getElementById('val-do').innerText = lastData.do;
-    document.getElementById('val-ph').innerText = lastData.ph;
-    document.getElementById('val-kedalaman').innerText = lastData.kedalaman;
+    // Update Teks Update Terakhir & Kartu Sensor
+    if (document.getElementById('txt-last-update')) {
+      document.getElementById('txt-last-update').innerText = "TERAKHIR DIPERBARUI: " + lastData.timestamp;
+    }
+    if (document.getElementById('val-suhu1')) document.getElementById('val-suhu1').innerText = lastData.suhu1 ?? 0;
+    if (document.getElementById('val-suhu2')) document.getElementById('val-suhu2').innerText = lastData.suhu2 ?? 0;
+    if (document.getElementById('val-suhu3')) document.getElementById('val-suhu3').innerText = lastData.suhu3 ?? 0;
+    if (document.getElementById('val-do')) document.getElementById('val-do').innerText = lastData.do ?? 0;
+    if (document.getElementById('val-ph')) document.getElementById('val-ph').innerText = lastData.ph ?? 0;
+    if (document.getElementById('val-kedalaman')) document.getElementById('val-kedalaman').innerText = lastData.kedalaman ?? 0;
 
-    // Update Status & Pesan
+    // Update Status Badge & Saran
     const badge = document.getElementById('badge-status');
     if (badge && lastData.status) {
       badge.innerText = lastData.status;
-      badge.className = "badge-status " + lastData.status.toLowerCase();
+      badge.className = "badge-status " + String(lastData.status).toLowerCase();
     }
 
     if (document.getElementById('txt-saran-oksigen') && lastData.saran_oksigen) {
@@ -105,27 +102,30 @@ async function loadDataFromGoogleSheets() {
 
     // Update Dataset Grafik (15 Data Terakhir)
     const recentData = dataArr.slice(-15);
-    const timeLabels = recentData.map(d => String(d.timestamp).includes(' ') ? String(d.timestamp).split(' ')[1] : d.timestamp);
+    const timeLabels = recentData.map(d => {
+      const t = String(d.timestamp);
+      return t.includes(' ') ? t.split(' ')[1] : t;
+    });
 
     chartSuhu.data.labels = timeLabels;
-    chartSuhu.data.datasets[0].data = recentData.map(d => d.suhu1);
-    chartSuhu.data.datasets[1].data = recentData.map(d => d.suhu2);
-    chartSuhu.data.datasets[2].data = recentData.map(d => d.suhu3);
+    chartSuhu.data.datasets[0].data = recentData.map(d => Number(d.suhu1) || 0);
+    chartSuhu.data.datasets[1].data = recentData.map(d => Number(d.suhu2) || 0);
+    chartSuhu.data.datasets[2].data = recentData.map(d => Number(d.suhu3) || 0);
     chartSuhu.update();
 
     chartDO.data.labels = timeLabels;
-    chartDO.data.datasets[0].data = recentData.map(d => d.do);
+    chartDO.data.datasets[0].data = recentData.map(d => Number(d.do) || 0);
     chartDO.update();
 
     chartPH.data.labels = timeLabels;
-    chartPH.data.datasets[0].data = recentData.map(d => d.ph);
+    chartPH.data.datasets[0].data = recentData.map(d => Number(d.ph) || 0);
     chartPH.update();
 
     chartKedalaman.data.labels = timeLabels;
-    chartKedalaman.data.datasets[0].data = recentData.map(d => d.kedalaman);
+    chartKedalaman.data.datasets[0].data = recentData.map(d => Number(d.kedalaman) || 0);
     chartKedalaman.update();
 
-    // Render Tabel Log Riwayat (10 Data Terakhir)
+    // Render Tabel Log
     renderLogTable(dataArr.slice().reverse().slice(0, 10));
 
   } catch (err) {
@@ -133,7 +133,6 @@ async function loadDataFromGoogleSheets() {
   }
 }
 
-// 3. FUNGSI ISI TABEL LOG RIWAYAT & AKTIVITAS
 function renderLogTable(logs) {
   const tbody = document.getElementById('log-table-body');
   if (!tbody) return;
@@ -156,16 +155,14 @@ function renderLogTable(logs) {
   });
 }
 
-// 4. FUNGSI UNDUH FILE CSV
 function downloadCSV() {
   if (GOOGLE_SCRIPT_URL) {
     window.open(GOOGLE_SCRIPT_URL + "?export=csv", "_blank");
   }
 }
 
-// JALANKAN OTOMATIS SAAT WEB DIBUKA
 window.onload = () => {
   initCharts();
   loadDataFromGoogleSheets();
-  setInterval(loadDataFromGoogleSheets, 10000); // Auto refresh tiap 10 detik
+  setInterval(loadDataFromGoogleSheets, 10000);
 };
