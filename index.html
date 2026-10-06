@@ -1,21 +1,24 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Smart Feeder - Monitoring Kualitas Air</title>
 
   <!-- Google Fonts & Chart.js CDN -->
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <!-- File CSS Terpisah -->
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
   <div class="container">
-    
+
     <!-- HEADER -->
     <header>
       <div class="brand">
@@ -35,7 +38,7 @@
 
     <!-- DASHBOARD BAGIAN ATAS (GRID 2 KOLOM) -->
     <div class="top-grid">
-      
+
       <!-- KOTAK KIRI: INDEKS KUALITAS & SARAN -->
       <div class="main-status-card">
         <div class="status-head">
@@ -47,7 +50,8 @@
         </div>
 
         <div class="alert-box" id="box-saran-oksigen">
-          <span id="txt-saran-oksigen">Kadar oksigen terlalu tinggi (7.0 ppm). Kurangi kecepatan aerator/kincir air!</span>
+          <span id="txt-saran-oksigen">Kadar oksigen terlalu tinggi (7.0 ppm). Kurangi kecepatan aerator/kincir
+            air!</span>
         </div>
 
         <div class="info-box" id="box-saran-suhu">
@@ -60,7 +64,7 @@
       <div class="sensors-section">
         <h3>Data Sensor Terkini</h3>
         <div class="sensor-grid">
-          
+
           <!-- Suhu Permukaan -->
           <div class="sensor-card">
             <div class="sensor-title">Suhu Permukaan</div>
@@ -133,46 +137,63 @@
 
     <!-- SECTION GRAFIK TREN -->
     <div class="charts-grid">
-      
-      <!-- Grafik 1: Tren Suhu -->
+
+      <!-- GRAFIK 1: TREN SUHU -->
       <div class="chart-card">
         <div class="chart-header">
-          <div class="chart-title">Tren Suhu</div>
+          <h3>Tren Suhu</h3>
+          <div class="chart-filter-container">
+            <button class="btn-filter filter-suhu active" onclick="filterSingleChart('suhu', 'hari', event)">Hari
+              Ini</button>
+            <button class="btn-filter filter-suhu" onclick="filterSingleChart('suhu', 'minggu', event)">7 Hari</button>
+            <button class="btn-filter filter-suhu" onclick="filterSingleChart('suhu', 'bulan', event)">30 Hari</button>
+          </div>
         </div>
-        <div class="chart-box">
-          <canvas id="chartSuhu"></canvas>
-        </div>
+        <div class="chart-box"><canvas id="chartSuhu"></canvas></div>
       </div>
 
-      <!-- Grafik 2: Tren Oksigen -->
+      <!-- GRAFIK 2: OKSIGEN TERLARUT (DO) -->
       <div class="chart-card">
         <div class="chart-header">
-          <div class="chart-title">Tren Oksigen (DO)</div>
+          <h3>Tren Oksigen Terlarut (DO)</h3>
+          <div class="chart-filter-container">
+            <button class="btn-filter filter-do active" onclick="filterSingleChart('do', 'hari', event)">Hari
+              Ini</button>
+            <button class="btn-filter filter-do" onclick="filterSingleChart('do', 'minggu', event)">7 Hari</button>
+            <button class="btn-filter filter-do" onclick="filterSingleChart('do', 'bulan', event)">30 Hari</button>
+          </div>
         </div>
-        <div class="chart-box">
-          <canvas id="chartDO"></canvas>
-        </div>
+        <div class="chart-box"><canvas id="chartDO"></canvas></div>
       </div>
 
-      <!-- Grafik 3 & 4 (Baris Bawah 2 Kolom) -->
-      <div class="bottom-charts-grid">
-        <div class="chart-card">
-          <div class="chart-header">
-            <div class="chart-title">Tren pH Air</div>
-          </div>
-          <div class="chart-box">
-            <canvas id="chartPH"></canvas>
+      <!-- GRAFIK 3: pH AIR -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Tren pH Air</h3>
+          <div class="chart-filter-container">
+            <button class="btn-filter filter-ph active" onclick="filterSingleChart('ph', 'hari', event)">Hari
+              Ini</button>
+            <button class="btn-filter filter-ph" onclick="filterSingleChart('ph', 'minggu', event)">7 Hari</button>
+            <button class="btn-filter filter-ph" onclick="filterSingleChart('ph', 'bulan', event)">30 Hari</button>
           </div>
         </div>
+        <div class="chart-box"><canvas id="chartPH"></canvas></div>
+      </div>
 
-        <div class="chart-card">
-          <div class="chart-header">
-            <div class="chart-title">Kedalaman Air</div>
-          </div>
-          <div class="chart-box">
-            <canvas id="chartKedalaman"></canvas>
+      <!-- GRAFIK 4: KEDALAMAN -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Tren Kedalaman</h3>
+          <div class="chart-filter-container">
+            <button class="btn-filter filter-kedalaman active"
+              onclick="filterSingleChart('kedalaman', 'hari', event)">Hari Ini</button>
+            <button class="btn-filter filter-kedalaman" onclick="filterSingleChart('kedalaman', 'minggu', event)">7
+              Hari</button>
+            <button class="btn-filter filter-kedalaman" onclick="filterSingleChart('kedalaman', 'bulan', event)">30
+              Hari</button>
           </div>
         </div>
+        <div class="chart-box"><canvas id="chartKedalaman"></canvas></div>
       </div>
 
     </div>
@@ -207,4 +228,5 @@
   <!-- File JavaScript Terpisah -->
   <script src="script.js"></script>
 </body>
+
 </html>
