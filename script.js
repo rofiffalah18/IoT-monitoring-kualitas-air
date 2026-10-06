@@ -1,9 +1,12 @@
-// GOOGLE SCRIPT URL
+// ==========================================
+// CONFIGURATION & GLOBAL VARIABLES
+// ==========================================
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOC0765Q0jINi5kOR5QyvA_nUyAyEp5g0oFE64U-sLyx8IgtdPZlOqbbVZ5kSYAm-O1w/exec";
 
 let chartSuhu, chartDO, chartPH, chartKedalaman;
 let globalAllData = [];
 
+// Filter aktif untuk masing-masing grafik (default: 'jam')
 const chartFilters = {
   suhu: 'jam',
   do: 'jam',
@@ -11,7 +14,11 @@ const chartFilters = {
   kedalaman: 'jam'
 };
 
-// HELPER: Mengambil Teks Judul Sumbu X Sesuai Filter
+// ==========================================
+// HELPER FUNCTIONS
+// ==========================================
+
+// Helper 1: Mendapatkan Judul Sumbu X berdasarkan filter
 function getXAxisTitle(timeframe) {
   if (timeframe === 'jam') return 'Menit Ke-';
   if (timeframe === 'hari') return 'Jam Ke-';
@@ -20,7 +27,7 @@ function getXAxisTitle(timeframe) {
   return '';
 }
 
-// HELPER: Format Label Sumbu X
+// Helper 2: Formatter Label Sumbu X Dinamis
 function formatTimeLabels(dataArr, timeframe) {
   const namaHariFull = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
@@ -44,10 +51,33 @@ function formatTimeLabels(dataArr, timeframe) {
     else if (timeframe === 'bulan') {
       return isValidDate ? dateObj.getDate() : String(d.timestamp);
     }
+    return String(d.timestamp);
   });
 }
 
-// Helper Generator Opsi Grafik dengan Judul Sumbu X & Y
+// Helper 3: Filter Rentang Data
+function getFilteredDataByTimeframe(timeframe) {
+  if (!globalAllData || globalAllData.length === 0) return [];
+  const now = new Date();
+
+  if (timeframe === 'jam') {
+    const oneHourAgo = new Date(now.getTime() - (1 * 60 * 60 * 1000));
+    const recent = globalAllData.filter(d => new Date(d.timestamp) >= oneHourAgo);
+    return recent.length > 0 ? recent : globalAllData.slice(-12);
+  } else if (timeframe === 'hari') {
+    const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+    return globalAllData.filter(d => new Date(d.timestamp) >= twentyFourHoursAgo);
+  } else if (timeframe === 'minggu') {
+    const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+    return globalAllData.filter(d => new Date(d.timestamp) >= sevenDaysAgo);
+  } else if (timeframe === 'bulan') {
+    const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
+    return globalAllData.filter(d => new Date(d.timestamp) >= thirtyDaysAgo);
+  }
+  return globalAllData.slice(-12);
+}
+
+// Helper 4: Opsi Standar Opsi Chart.js dengan Judul Sumbu X dan Y
 function createChartOptions(yAxisTitle) {
   return {
     responsive: true,
@@ -56,7 +86,7 @@ function createChartOptions(yAxisTitle) {
       x: {
         title: {
           display: true,
-          text: 'Menit Ke-', // Default awal untuk filter 'jam'
+          text: 'Menit Ke-',
           font: { weight: 'bold', size: 11 }
         },
         ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12 }
@@ -64,7 +94,7 @@ function createChartOptions(yAxisTitle) {
       y: {
         title: {
           display: true,
-          text: yAxisTitle, // Label identifikasi Sumbu Y
+          text: yAxisTitle,
           font: { weight: 'bold', size: 11 }
         }
       }
@@ -72,7 +102,10 @@ function createChartOptions(yAxisTitle) {
   };
 }
 
-// 1. INISIALISASI GRAFIK
+// ==========================================
+// CHART INITIALIZATION & RENDERING
+// ==========================================
+
 function initCharts() {
   const defaultLabels = ['0', '5', '10', '15'];
 
@@ -117,7 +150,6 @@ function initCharts() {
   });
 }
 
-// 2. RENDER GRAFIK & UPDATE JUDUL SUMBU X
 function renderChartByType(chartType) {
   const timeframe = chartFilters[chartType];
   const dataset = getFilteredDataByTimeframe(timeframe);
@@ -132,7 +164,7 @@ function renderChartByType(chartType) {
 
   if (targetChart) {
     targetChart.data.labels = labels;
-    targetChart.options.scales.x.title.text = xAxisTitle; // Update judul sumbu X otomatis
+    targetChart.options.scales.x.title.text = xAxisTitle;
 
     if (chartType === 'suhu') {
       targetChart.data.datasets[0].data = dataset.map(d => Number(d.suhu1) || 0);
@@ -150,26 +182,11 @@ function renderChartByType(chartType) {
   }
 }
 
-// Helper Filter Rentang Waktu
-function getFilteredDataByTimeframe(timeframe) {
-  if (!globalAllData || globalAllData.length === 0) return [];
-  const now = new Date();
-
-  if (timeframe === 'jam') {
-    const oneHourAgo = new Date(now.getTime() - (1 * 60 * 60 * 1000));
-    const recent = globalAllData.filter(d => new Date(d.timestamp) >= oneHourAgo);
-    return recent.length > 0 ? recent : globalAllData.slice(-12);
-  } else if (timeframe === 'hari') {
-    const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
-    return globalAllData.filter(d => new Date(d.timestamp) >= twentyFourHoursAgo);
-  } else if (timeframe === 'minggu') {
-    const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
-    return globalAllData.filter(d => new Date(d.timestamp) >= sevenDaysAgo);
-  } else if (timeframe === 'bulan') {
-    const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-    return globalAllData.filter(d => new Date(d.timestamp) >= thirtyDaysAgo);
-  }
-  return globalAllData.slice(-12);
+function updateAllCharts() {
+  renderChartByType('suhu');
+  renderChartByType('do');
+  renderChartByType('ph');
+  renderChartByType('kedalaman');
 }
 
 function filterSingleChart(chartType, timeframe, evt) {
@@ -184,82 +201,90 @@ function filterSingleChart(chartType, timeframe, evt) {
   renderChartByType(chartType);
 }
 
-function updateAllCharts() {
-  renderChartByType('suhu');
-  renderChartByType('do');
-  renderChartByType('ph');
-  renderChartByType('kedalaman');
-}
+// ==========================================
+// RENDER TABEL LOG & CONNECTION STATUS
+// ==========================================
 
-// LOAD DATA & AUTOREFRESH
-async function loadDataFromGoogleSheets() {
-  if (!GOOGLE_SCRIPT_URL) return;
-  try {
-    const response = await fetch(GOOGLE_SCRIPT_URL);
-    const result = await response.json();
-    globalAllData = result.data || [];
-    if (globalAllData.length === 0) return;
+function renderActivityHistory(dataArray) {
+  const tableBody = document.getElementById('log-table-body');
+  const statusDot = document.getElementById('connection-status-dot');
+  if (!tableBody) return;
 
-    const lastData = globalAllData[globalAllData.length - 1];
-
-    if (document.getElementById('txt-last-update')) {
-      document.getElementById('txt-last-update').innerText = "TERAKHIR DIPERBARUI: " + lastData.timestamp;
+  if (!dataArray || dataArray.length === 0) {
+    tableBody.innerHTML = `
+      <tr>
+        <td colspan="4" style="text-align: center; color: #94a3b8; padding: 12px;">
+          Belum ada riwayat aktivitas data.
+        </td>
+      </tr>`;
+    if (statusDot) {
+      statusDot.className = "status-indicator offline";
+      statusDot.innerText = "ESP32 Offline";
     }
-    if (document.getElementById('val-suhu1')) document.getElementById('val-suhu1').innerText = lastData.suhu1 ?? 0;
-    if (document.getElementById('val-suhu2')) document.getElementById('val-suhu2').innerText = lastData.suhu2 ?? 0;
-    if (document.getElementById('val-suhu3')) document.getElementById('val-suhu3').innerText = lastData.suhu3 ?? 0;
-    if (document.getElementById('val-do')) document.getElementById('val-do').innerText = lastData.do ?? 0;
-    if (document.getElementById('val-ph')) document.getElementById('val-ph').innerText = lastData.ph ?? 0;
-    if (document.getElementById('val-kedalaman')) document.getElementById('val-kedalaman').innerText = lastData.kedalaman ?? 0;
-
-    updateAllCharts();
-  } catch (err) {
-    console.error("Gagal ambil data:", err);
+    return;
   }
+
+  // Update indikator status ESP32 di header
+  if (statusDot) {
+    statusDot.className = "status-indicator online";
+    statusDot.innerText = "ESP32 Online";
+  }
+
+  // Ambil 10 log data terbaru (paling baru di posisi atas)
+  const recentLogs = [...dataArray].reverse().slice(0, 10);
+
+  let htmlContent = '';
+  recentLogs.forEach(item => {
+    htmlContent += `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;">${item.timestamp || '-'}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;"><span style="color:#0284c7; font-weight:600;">Aktif</span></td>
+        <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;"><span style="color:#16a34a; font-weight:600;">Online</span></td>
+        <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;">Pengiriman data sensor berhasil</td>
+      </tr>
+    `;
+  });
+
+  tableBody.innerHTML = htmlContent;
 }
 
-window.onload = () => {
-  initCharts();
-  loadDataFromGoogleSheets();
-  setInterval(loadDataFromGoogleSheets, 10000);
-};
-
-// Variable status koneksi
-let isConnected = false;
+// ==========================================
+// DATA FETCHING FROM GOOGLE SHEETS
+// ==========================================
 
 async function loadDataFromGoogleSheets() {
   if (!GOOGLE_SCRIPT_URL) return;
 
-  const statusText = document.getElementById('txt-last-update');
+  const tableBody = document.getElementById('log-table-body');
+  const statusDot = document.getElementById('connection-status-dot');
 
   try {
-    // Tambahkan timeout 5 detik agar tidak memuat selamanya jika jaringan lambat
+    // Timeout 6 detik agar fetch tidak menggantung tanpa batas
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), 6000);
 
     const response = await fetch(GOOGLE_SCRIPT_URL, { signal: controller.signal });
     clearTimeout(timeoutId);
 
-    if (!response.ok) throw new Error("Respon server bermasalah");
+    if (!response.ok) throw new Error("Respon server gagal");
 
     const result = await response.json();
     globalAllData = result.data || [];
 
     if (globalAllData.length === 0) {
-      if (statusText) statusText.innerText = "STATUS: DATA KOSONG";
+      renderActivityHistory([]);
       return;
     }
 
-    // Ambil data paling baru
     const lastData = globalAllData[globalAllData.length - 1];
 
-    // Update status koneksi menjadi TERKONEKSI
-    if (statusText) {
-      statusText.innerText = "STATUS: TERKONEKSI | TERAKHIR: " + (lastData.timestamp || '-');
-      statusText.style.color = "#16a34a"; // Warna hijau
+    // Update Teks Terakhir Diperbarui (jika ada elemennya)
+    const txtLastUpdate = document.getElementById('txt-last-update');
+    if (txtLastUpdate) {
+      txtLastUpdate.innerText = "TERAKHIR DIPERBARUI: " + (lastData.timestamp || '-');
     }
 
-    // Update nilai kartu sensor
+    // Update Kartu Nilai Sensor Real-time
     if (document.getElementById('val-suhu1')) document.getElementById('val-suhu1').innerText = lastData.suhu1 ?? 0;
     if (document.getElementById('val-suhu2')) document.getElementById('val-suhu2').innerText = lastData.suhu2 ?? 0;
     if (document.getElementById('val-suhu3')) document.getElementById('val-suhu3').innerText = lastData.suhu3 ?? 0;
@@ -267,14 +292,34 @@ async function loadDataFromGoogleSheets() {
     if (document.getElementById('val-ph')) document.getElementById('val-ph').innerText = lastData.ph ?? 0;
     if (document.getElementById('val-kedalaman')) document.getElementById('val-kedalaman').innerText = lastData.kedalaman ?? 0;
 
-    // Refresh grafik
+    // Refresh Grafik & Tabel Riwayat Log
     updateAllCharts();
+    renderActivityHistory(globalAllData);
 
   } catch (err) {
-    console.error("Gagal terhubung:", err);
-    if (statusText) {
-      statusText.innerText = "STATUS: TERPUTUS / ESP32 OFFLINE";
-      statusText.style.color = "#dc2626"; // Warna merah
+    console.error("Gagal terhubung ke Google Sheets:", err);
+    if (tableBody) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="4" style="text-align: center; color: #ef4444; padding: 12px; font-weight: 600;">
+            Gagal terhubung ke server / ESP32 Offline.
+          </td>
+        </tr>`;
+    }
+    if (statusDot) {
+      statusDot.className = "status-indicator offline";
+      statusDot.innerText = "ESP32 Offline";
     }
   }
 }
+
+// ==========================================
+// APP INITIALIZATION
+// ==========================================
+
+window.onload = () => {
+  initCharts();
+  loadDataFromGoogleSheets();
+  // Auto-refresh setiap 10 detik
+  setInterval(loadDataFromGoogleSheets, 10000);
+};
