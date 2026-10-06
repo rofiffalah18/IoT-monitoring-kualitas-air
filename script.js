@@ -223,3 +223,58 @@ window.onload = () => {
   loadDataFromGoogleSheets();
   setInterval(loadDataFromGoogleSheets, 10000);
 };
+
+// Variable status koneksi
+let isConnected = false;
+
+async function loadDataFromGoogleSheets() {
+  if (!GOOGLE_SCRIPT_URL) return;
+
+  const statusText = document.getElementById('txt-last-update');
+
+  try {
+    // Tambahkan timeout 5 detik agar tidak memuat selamanya jika jaringan lambat
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch(GOOGLE_SCRIPT_URL, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!response.ok) throw new Error("Respon server bermasalah");
+
+    const result = await response.json();
+    globalAllData = result.data || [];
+
+    if (globalAllData.length === 0) {
+      if (statusText) statusText.innerText = "STATUS: DATA KOSONG";
+      return;
+    }
+
+    // Ambil data paling baru
+    const lastData = globalAllData[globalAllData.length - 1];
+
+    // Update status koneksi menjadi TERKONEKSI
+    if (statusText) {
+      statusText.innerText = "STATUS: TERKONEKSI | TERAKHIR: " + (lastData.timestamp || '-');
+      statusText.style.color = "#16a34a"; // Warna hijau
+    }
+
+    // Update nilai kartu sensor
+    if (document.getElementById('val-suhu1')) document.getElementById('val-suhu1').innerText = lastData.suhu1 ?? 0;
+    if (document.getElementById('val-suhu2')) document.getElementById('val-suhu2').innerText = lastData.suhu2 ?? 0;
+    if (document.getElementById('val-suhu3')) document.getElementById('val-suhu3').innerText = lastData.suhu3 ?? 0;
+    if (document.getElementById('val-do')) document.getElementById('val-do').innerText = lastData.do ?? 0;
+    if (document.getElementById('val-ph')) document.getElementById('val-ph').innerText = lastData.ph ?? 0;
+    if (document.getElementById('val-kedalaman')) document.getElementById('val-kedalaman').innerText = lastData.kedalaman ?? 0;
+
+    // Refresh grafik
+    updateAllCharts();
+
+  } catch (err) {
+    console.error("Gagal terhubung:", err);
+    if (statusText) {
+      statusText.innerText = "STATUS: TERPUTUS / ESP32 OFFLINE";
+      statusText.style.color = "#dc2626"; // Warna merah
+    }
+  }
+}
