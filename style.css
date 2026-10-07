@@ -19,8 +19,9 @@ body {
    HEADER
    ========================================== */
 .header {
-  background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-  color: #ffffff;
+  background: #B5BAFF;
+  background: linear-gradient(90deg, rgba(181, 186, 255, 1) 0%, rgba(174, 226, 255, 1) 50%, rgba(217, 249, 223, 1) 100%);
+  color: #612D53;
   padding: 20px 0;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
@@ -103,9 +104,20 @@ body {
   text-transform: uppercase;
 }
 
-.badge-success { background-color: #dcfce7; color: #15803d; }
-.badge-waspada { background-color: #fef3c7; color: #b45309; }
-.badge-danger  { background-color: #ffe4e6; color: #be123c; }
+.badge-success {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.badge-waspada {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.badge-danger {
+  background-color: #ffe4e6;
+  color: #be123c;
+}
 
 /* ==========================================
    MAIN LAYOUT & CARDS
@@ -176,10 +188,29 @@ body {
   font-weight: 500;
 }
 
-.alert-item.info { background-color: #f0f9ff; color: #0369a1; border-left: 4px solid #0284c7; }
-.alert-item.success { background-color: #f0fdf4; color: #15803d; border-left: 4px solid #22c55e; }
-.alert-item.warning { background-color: #fffbeb; color: #b45309; border-left: 4px solid #f59e0b; }
-.alert-item.danger { background-color: #fef2f2; color: #b91c1c; border-left: 4px solid #ef4444; }
+.alert-item.info {
+  background-color: #f0f9ff;
+  color: #0369a1;
+  border-left: 4px solid #0284c7;
+}
+
+.alert-item.success {
+  background-color: #f0fdf4;
+  color: #15803d;
+  border-left: 4px solid #22c55e;
+}
+
+.alert-item.warning {
+  background-color: #fffbeb;
+  color: #b45309;
+  border-left: 4px solid #f59e0b;
+}
+
+.alert-item.danger {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border-left: 4px solid #ef4444;
+}
 
 /* ==========================================
    SENSOR GRID
@@ -201,13 +232,12 @@ body {
   align-items: center;
   gap: 8px;
   margin-bottom: 10px;
-  font-weight: bold;
 }
 
 .sensor-header h4 {
   font-size: 0.85rem;
-  color: #64748b;
-  font-weight: 600;
+  color: #2d343e;
+  font-weight: bold;
 }
 
 .sensor-value {
@@ -284,7 +314,8 @@ table {
   font-size: 0.88rem;
 }
 
-th, td {
+th,
+td {
   padding: 12px 15px;
   border-bottom: 1px solid #e2e8f0;
 }
@@ -305,16 +336,50 @@ tr:hover {
   padding: 20px;
 }
 
-/* RESPONSIVE BREAKPOINTS */
+/* ==========================================
+   RESPONSIVE LAYOUT UNTUK TAMPILAN HP
+   ========================================== */
 @media (max-width: 768px) {
-  .overview-section {
-    grid-template-columns: 1fr;
-  }
+  
   .header-container {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    text-align: center;
+    gap: 15px;
   }
+
+  .header-title {
+    text-align: center;
+    width: 100%;
+  }
+
+  .header-title h1 {
+    font-size: 1.4rem;
+  }
+
+  .header-title p {
+    font-size: 0.85rem;
+  }
+
   .header-status {
-    align-items: flex-start;
+    width: 100%;
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  #last-update-time {
+    font-size: 0.75rem;
+    text-align: left;
+  }
+
+  .status-pill {
+    padding: 5px 10px;
+    font-size: 0.75rem;
+  }
+
+  .overview-section {
+    grid-template-columns: 1fr;
   }
 }
