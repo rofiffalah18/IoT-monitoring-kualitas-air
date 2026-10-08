@@ -212,29 +212,39 @@
 
     <!-- TABEL LOG RIWAYAT AKTIVITAS & KONEKSI -->
     <section class="history-section">
-      <div class="card history-card">
-        <div class="table-header">
-          <h3>📋 Log Aktivitas Perangkat & Transmisi Data</h3>
-          <span class="log-count" id="log-count">Menampilkan 10 data terakhir</span>
+      <!-- Kontrol Filter & Paginasi Log -->
+      <div class="log-controls"
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div>
+          <label for="filter-log-time"><b>Rentang Waktu:</b> </label>
+          <select id="filter-log-time" onchange="changeLogFilter()">
+            <option value="7d" selected>1 Minggu Terakhir</option>
+            <option value="today">Hari Ini</option>
+            <option value="all">Semua Riwayat</option>
+          </select>
         </div>
-        <div class="table-responsive">
-          <table>
-            <thead>
-              <tr>
-                <th>Waktu Transmisi</th>
-                <th>Jenis Aktivitas</th>
-                <th>Status Log</th>
-                <th>Keterangan / Pesan Masalah</th>
-              </tr>
-            </thead>
-            <tbody id="log-table-body">
-              <tr>
-                <td colspan="4" class="empty-log">Memuat data log aktivitas...</td>
-              </tr>
-            </tbody>
-          </table>
+
+        <div class="pagination-controls" style="display: flex; gap: 8px; align-items: center;">
+          <button id="btn-prev-log" onclick="prevLogPage()" class="btn-page">◀ Prev</button>
+          <span id="log-page-info">Halaman 1 dari 1</span>
+          <button id="btn-next-log" onclick="nextLogPage()" class="btn-page">Next ▶</button>
         </div>
       </div>
+
+      <!-- Tabel Log -->
+      <table>
+        <thead>
+          <tr>
+            <th>Waktu Transmisi</th>
+            <th>Jenis Aktivitas</th>
+            <th>Status Log</th>
+            <th>Keterangan / Pesan Masalah</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-history">
+          <!-- Data log diisi oleh JavaScript -->
+        </tbody>
+      </table>
     </section>
 
   </main>
