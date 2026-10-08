@@ -331,7 +331,7 @@ function createSingleChart(canvasId, labelText, lineColor, fillColor) {
 
 function updateLatestCards(latest) {
   if (!latest) return;
-
+  checkESPConnection(latest.timestamp);
   // 1. Update Nilai Teks Sensor
   setElementText("val-suhu1", `${latest.suhu1} °C`);
   setElementText("val-suhu2", `${latest.suhu2} °C`);
@@ -424,4 +424,27 @@ function updateDataset(chartObj, labels, dataPoints) {
 
 function showEmptyState() {
   document.getElementById('log-table-body').innerHTML = `<tr><td colspan="4" class="empty-log">Belum ada data riwayat tersedia.</td></tr>`;
+}
+
+// Tambahkan fungsi pengecekan koneksi ini di script.js
+function checkESPConnection(latestTimestampStr) {
+  const statusBadge = document.getElementById("esp-status-badge"); // Elemen badge status ESP di HTML
+  if (!statusBadge || !latestTimestampStr) return;
+
+  // Ubah string "dd/MM/yyyy, HH:mm:ss" jadi objek Date
+  const lastDataTime = parseCustomDate(latestTimestampStr);
+  const now = new Date();
+
+  // Hitung selisih waktu dalam detik
+  const diffInSeconds = Math.floor((now - lastDataTime) / 1000);
+
+  // Jika data terakhir dikirim kurang dari 3 menit (180 detik) yang lalu -> ONLINE
+  if (diffInSeconds <= 180) {
+    statusBadge.innerText = "ESP32 ONLINE";
+    statusBadge.className = "badge badge-success";
+  } else {
+    // Jika lebih dari 3 menit tidak ada data masuk -> OFFLINE
+    statusBadge.innerText = "ESP32 OFFLINE";
+    statusBadge.className = "badge badge-danger";
+  }
 }
