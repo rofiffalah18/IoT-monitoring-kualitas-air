@@ -13,9 +13,48 @@ document.addEventListener("DOMContentLoaded", () => {
   initCharts();
   fetchData();
   
-  // Set interval auto update
+  // Pasang listener pada dropdown filter grafik
+  setupFilterListeners();
+
   setInterval(fetchData, REFRESH_INTERVAL);
 });
+
+function setupFilterListeners() {
+  const filterSuhu = document.getElementById("filter-suhu");
+  const filterDO = document.getElementById("filter-do");
+  const filterPH = document.getElementById("filter-ph");
+  const filterKedalaman = document.getElementById("filter-kedalaman");
+
+  if (filterSuhu) filterSuhu.addEventListener("change", () => updateSingleChart("suhu"));
+  if (filterDO) filterDO.addEventListener("change", () => updateSingleChart("do"));
+  if (filterPH) filterPH.addEventListener("change", () => updateSingleChart("ph"));
+  if (filterKedalaman) filterKedalaman.addEventListener("change", () => updateSingleChart("kedalaman"));
+}
+
+function filterDataByTime(data, filterValue) {
+  if (!data || data.length === 0) return [];
+  if (filterValue === "all") return data;
+
+  const now = new Date();
+  
+  return data.filter(item => {
+    const itemDate = parseCustomDate(item.timestamp);
+    
+    if (filterValue === "1h") {
+      return (now - itemDate) <= (1 * 60 * 60 * 1000); // 1 Jam terakhir
+    } 
+    if (filterValue === "today") {
+      return itemDate.toDateString() === now.toDateString(); // Hari Ini
+    } 
+    if (filterValue === "7d") {
+      return (now - itemDate) <= (7 * 24 * 60 * 60 * 1000); // 7 Hari
+    } 
+    if (filterValue === "30d") {
+      return (now - itemDate) <= (30 * 24 * 60 * 60 * 1000); // 30 Hari
+    }
+    return true;
+  });
+}
 
 // ==========================================
 // 2. FUNGSI FETCH DATA (REPAIR KONEKSI)
@@ -115,6 +154,9 @@ function updateLastUpdateTime(timestamp) {
 // 4. KARTU SENSOR & WARNA MERAH (BORDER DANGER)
 // ==========================================
 function updateSensorCards(data) {
+  if (!data) return;
+
+  // 1. Update Nilai Angka Sensor
   setElementText("val-suhu1", `${data.suhu1} °C`);
   setElementText("val-suhu2", `${data.suhu2} °C`);
   setElementText("val-suhu3", `${data.suhu3} °C`);
@@ -122,10 +164,41 @@ function updateSensorCards(data) {
   setElementText("val-ph", data.ph);
   setElementText("val-kedalaman", `${data.kedalaman} m`);
 
-  // Logika Kartu Berwarna Merah (Danger)
+  // 2. Evaluasi Kondisi Masing-Masing Sensor
+  const bedaSuhu = Math.abs(data.suhu1 - data.suhu3);
+  const statusSuhu = bedaSuhu >= 1.5 ? "Waspada (Beda Tinggi)" : "Normal";
+  const statusDO = data.do < 4.0 ? "Bahaya (Rendah)" : "Normal";
+  
+  let statusPH = "Normal";
+  if (data.ph < 5.5) statusPH = "Bahaya (Asam)";
+  else if (data.ph > 8.5) statusPH = "Bahaya (Basa)";
+
+  let statusKedalaman = "Normal";
+  if (data.kedalaman < 0.8) statusKedalaman = "Waspada (Dangkal)";
+
+  // 3. Tampilkan Teks Kondisi ke Kartu Sensor
+  updateCardCondition("card-suhu1", statusSuhu);
+  updateCardCondition("card-suhu2", "Normal");
+  updateCardCondition("card-suhu3", statusSuhu);
+  updateCardCondition("card-do", statusDO);
+  updateCardCondition("card-ph", statusPH);
+  updateCardCondition("card-kedalaman", statusKedalaman);
+
+  // 4. Efek Visual Warna Merah (Danger Border)
   toggleCardDanger("card-do", data.do < 4.0);
   toggleCardDanger("card-ph", data.ph < 5.5 || data.ph > 8.5);
-  toggleCardDanger("card-suhu", Math.abs(data.suhu1 - data.suhu3) >= 1.5);
+  toggleCardDanger("card-suhu", bedaSuhu >= 1.5);
+}
+
+// Helper untuk mengisi teks kondisi kartu
+function updateCardCondition(cardId, statusText) {
+  const cardElem = document.getElementById(cardId);
+  if (cardElem) {
+    const conditionElem = cardElem.querySelector(".condition") || cardElem.querySelector("[class*='kondisi']");
+    if (conditionElem) {
+      conditionElem.innerText = `Kondisi: ${statusText}`;
+    }
+  }
 }
 
 function toggleCardDanger(cardId, isDanger) {
@@ -146,9 +219,6 @@ function setElementText(id, text) {
 
 // ==========================================
 // 5. KALKULASI INDEKS KUALITAS AIR
-// ==========================================
-// ==========================================
-// KALKULASI INDEKS KUALITAS AIR & REKOMENDASI
 // ==========================================
 function calculateWaterQualityIndex(data) {
   if (!data) return;
@@ -279,32 +349,52 @@ function initCharts() {
 
 function updateChartData(data) {
   if (!data || data.length === 0) return;
+  rawDataSensor = data;
 
-  const labels = data.map(item => item.timestamp ? item.timestamp.split(", ")[1] || item.timestamp : "");
+  updateSingleChart("suhu");
+  updateSingleChart("do");
+  updateSingleChart("ph");
+  updateSingleChart("kedalaman");
+}
 
-  if (chartSuhu) {
+function updateSingleChart(type) {
+  const selectElem = document.getElementById(`filter-${type}`);
+  const filterVal = selectElem ? selectElem.value : "today";
+  
+  // Filter data sesuai opsi dropdown yang dipilih
+  const filteredData = filterDataByTime(rawDataSensor, filterVal);
+
+  // Buat label sumbu X dinamis (Menampilkan Jam jika filter singkat, Tanggal jika > 1 hari)
+  const labels = filteredData.map(item => {
+    if (!item.timestamp) return "";
+    const cleanStr = item.timestamp.replace("'", "").trim();
+    const parts = cleanStr.split(", ");
+    
+    if (filterVal === "1h" || filterVal === "today") {
+      return parts[1] || parts[0]; // Tampilkan HH:mm:ss
+    } else {
+      return parts[0]; // Tampilkan dd/MM/yyyy
+    }
+  });
+
+  // Update grafik spesifik
+  if (type === "suhu" && chartSuhu) {
     chartSuhu.data.labels = labels;
-    chartSuhu.data.datasets[0].data = data.map(item => item.suhu1);
-    chartSuhu.data.datasets[1].data = data.map(item => item.suhu2);
-    chartSuhu.data.datasets[2].data = data.map(item => item.suhu3);
+    chartSuhu.data.datasets[0].data = filteredData.map(item => item.suhu1);
+    chartSuhu.data.datasets[1].data = filteredData.map(item => item.suhu2);
+    chartSuhu.data.datasets[2].data = filteredData.map(item => item.suhu3);
     chartSuhu.update();
-  }
-
-  if (chartDO) {
+  } else if (type === "do" && chartDO) {
     chartDO.data.labels = labels;
-    chartDO.data.datasets[0].data = data.map(item => item.do);
+    chartDO.data.datasets[0].data = filteredData.map(item => item.do);
     chartDO.update();
-  }
-
-  if (chartPH) {
+  } else if (type === "ph" && chartPH) {
     chartPH.data.labels = labels;
-    chartPH.data.datasets[0].data = data.map(item => item.ph);
+    chartPH.data.datasets[0].data = filteredData.map(item => item.ph);
     chartPH.update();
-  }
-
-  if (chartKedalaman) {
+  } else if (type === "kedalaman" && chartKedalaman) {
     chartKedalaman.data.labels = labels;
-    chartKedalaman.data.datasets[0].data = data.map(item => item.kedalaman);
+    chartKedalaman.data.datasets[0].data = filteredData.map(item => item.kedalaman);
     chartKedalaman.update();
   }
 }
@@ -313,18 +403,26 @@ function updateChartData(data) {
 // 7. TABEL RIWAYAT LOG
 // ==========================================
 function renderActivityHistory(data) {
-  const tbody = document.getElementById("tbody-history");
+  // Cari tbody tabel log di HTML
+  const tbody = document.getElementById("tbody-history") || 
+                document.querySelector("table tbody") || 
+                document.querySelector(".log-table tbody");
+
   if (!tbody) return;
 
   tbody.innerHTML = "";
+  
+  // Ambil 10 data paling terbaru
   const recentData = [...data].reverse().slice(0, 10);
 
   recentData.forEach(item => {
     const tr = document.createElement("tr");
+    const isWarning = item.status === "WARNING";
+
     tr.innerHTML = `
       <td>${item.timestamp}</td>
       <td>Transmisi Sensor</td>
-      <td><span class="status-tag ${item.status === 'WARNING' ? 'tag-warning' : 'tag-normal'}">${item.status}</span></td>
+      <td><span class="status-tag ${isWarning ? 'tag-warning' : 'tag-normal'}">${item.status}</span></td>
       <td>${item.catatan}</td>
     `;
     tbody.appendChild(tr);
