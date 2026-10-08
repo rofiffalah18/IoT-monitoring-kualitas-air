@@ -1,4 +1,4 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxDdzsGUH8gAx1AnLbAotSOZdUr0OcHFb9G5ZReoC5FvD8Te2PaScDZ5Owyqu7xnuotxA/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxkiOIG6Kmpce1v2LDC4BLFhLCkMYlbSzAz74yMJEpuYEKx9eTbLUuLSdpww4Js-tJ5kw/exec";
 const IS_TESTING_MODE = false;
 const FETCH_INTERVAL_MS = 10000; // Web menarik data dari Google Sheets tiap 10 detik
 const rowsPerPage = 10;
