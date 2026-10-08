@@ -246,38 +246,133 @@ function setElementText(id, text) {
 // 5. KALKULASI INDEKS KUALITAS AIR
 // ==========================================
 function calculateWaterQualityIndex(data) {
-  if (!data) return;
+  if (!data) return { score: 0, status: "TIDAK ADA DATA", color: "#9ca3af" };
 
-  let score = 100;
-  
-  // Hitung Pengurangan Skor
-  if (data.do < 4.0) score -= 30;
-  if (data.ph < 5.5 || data.ph > 8.5) score -= 25;
-  if (Math.abs(data.suhu1 - data.suhu3) >= 1.5) score -= 20;
+  let totalPenalty = 0;
 
-  score = Math.max(score, 0);
-
-  // 1. Update Angka IKA
-  const ikaElem = document.getElementById("val-ika") || document.querySelector(".index-value");
-  if (ikaElem) ikaElem.innerText = score;
-
-  // 2. Update Status Teks IKA (BAIK / WASPADA / BAHAYA)
-  const statusBadge = document.getElementById("status-badge") || document.querySelector(".index-status");
-  if (statusBadge) {
-    if (score >= 80) {
-      statusBadge.innerText = "SANGAT BAIK";
-      statusBadge.className = "index-status badge-success";
-    } else if (score >= 60) {
-      statusBadge.innerText = "WASPADA";
-      statusBadge.className = "index-status badge-warning";
-    } else {
-      statusBadge.innerText = "BAHAYA";
-      statusBadge.className = "index-status badge-danger";
-    }
+  // A. Evaluasi Suhu 1 (Permukaan)
+  if (data.suhu1 === 0 || data.suhu1 < 25.0 || data.suhu1 > 32.0) {
+    totalPenalty += 15;
   }
 
-  // 3. Panggil Pembuat Pesan Peringatan & Rekomendasi
-  renderAlerts(data, score);
+  // B. Evaluasi Suhu 2 (Tengah)
+  if (data.suhu2 === 0 || data.suhu2 < 25.0 || data.suhu2 > 32.0) {
+    totalPenalty += 10;
+  }
+
+  // C. Evaluasi Suhu 3 (Dasar)
+  if (data.suhu3 === 0 || data.suhu3 < 25.0 || data.suhu3 > 32.0) {
+    totalPenalty += 15;
+  }
+
+  // D. Evaluasi Stratifikasi Suhu (|Suhu 1 - Suhu 3|)
+  const bedaSuhu = Math.abs(data.suhu1 - data.suhu3);
+  if (bedaSuhu >= 1.5) {
+    totalPenalty += 15;
+  }
+
+  // E. Evaluasi Oksigen Terlarut (DO)
+  if (data.do === 0 || data.do < 4.0) {
+    totalPenalty += 25; // Pengurangan besar jika DO rendah/0
+  } else if (data.do < 5.0) {
+    totalPenalty += 10;
+  }
+
+  // F. Evaluasi pH Air
+  if (data.ph === 0 || data.ph < 5.5 || data.ph > 8.5) {
+    totalPenalty += 20;
+  } else if (data.ph < 6.5 || data.ph > 7.8) {
+    totalPenalty += 10;
+  }
+
+  // G. Evaluasi Kedalaman
+  if (data.kedalaman === 0 || data.kedalaman < 0.8) {
+    totalPenalty += 10;
+  }
+
+  // Hitung Skor Akhir (Maksimal 100, Minimal 0)
+  const finalScore = Math.max(0, 100 - totalPenalty);
+
+  // Tentukan Status & Warna Indeks
+  let status = "SANGAT BAIK";
+  let color = "#10b981"; // Hijau
+
+  if (finalScore < 50) {
+    status = "BAHAYA / BURUK";
+    color = "#ef4444"; // Merah
+  } else if (finalScore < 75) {
+    status = "WASPADA / CUKUP";
+    color = "#f59e0b"; // Oranye/Kuning
+  }
+
+  return { score: finalScore, status: status, color: color };
+}
+
+
+// ==========================================
+// 2. REKOMENDASI SISTEM (MENAMPILKAN SEMUA PERINGATAN)
+// ==========================================
+function updateSystemRecommendation(data) {
+  const container = document.getElementById("recommendation-list") || document.getElementById("system-warning");
+  if (!container) return;
+
+  if (!data) {
+    container.innerHTML = "<li>Sistem berjalan normal. Tidak ada data abnormal.</li>";
+    return;
+  }
+
+  const warnings = [];
+
+  // A. Peringatan Suhu Permukaan (Suhu 1)
+  if (data.suhu1 === 0) {
+    warnings.push("⚠️ <b>Suhu Permukaan 0°C:</b> Sensor terputus atau tidak terbaca.");
+  } else if (data.suhu1 < 25.0 || data.suhu1 > 32.0) {
+    warnings.push(`⚠️ <b>Suhu Permukaan Anomali (${data.suhu1}°C):</b> Di luar rentang optimal 25-32°C.`);
+  }
+
+  // B. Peringatan Suhu Tengah (Suhu 2)
+  if (data.suhu2 === 0) {
+    warnings.push("⚠️ <b>Suhu Tengah 0°C:</b> Sensor terputus atau tidak terbaca.");
+  } else if (data.suhu2 < 25.0 || data.suhu2 > 32.0) {
+    warnings.push(`⚠️ <b>Suhu Tengah Anomali (${data.suhu2}°C):</b> Di luar rentang optimal 25-32°C.`);
+  }
+
+  // C. Peringatan Suhu Dasar (Suhu 3)
+  if (data.suhu3 === 0) {
+    warnings.push("⚠️ <b>Suhu Dasar 0°C:</b> Sensor terputus atau tidak terbaca.");
+  } else if (data.suhu3 < 25.0 || data.suhu3 > 32.0) {
+    warnings.push(`⚠️ <b>Suhu Dasar Anomali (${data.suhu3}°C):</b> Di luar rentang optimal 25-32°C.`);
+  }
+
+  // D. Peringatan Stratifikasi Suhu
+  const bedaSuhu = Math.abs(data.suhu1 - data.suhu3);
+  if (bedaSuhu >= 1.5) {
+    warnings.push(`⚠️ <b>Stratifikasi Suhu Tinggi (Δ ${bedaSuhu.toFixed(1)}°C):</b> Perbedaan suhu permukaan & dasar terlalu besar, nyalakan kincir air/aerator.`);
+  }
+
+  // E. Peringatan DO
+  if (data.do === 0 || data.do < 4.0) {
+    warnings.push(`🚨 <b>Oksigen Terlarut Kritis (${data.do} ppm):</b> Potensi kematian ikan! Segera tambah suplai oksigen/aerasi.`);
+  }
+
+  // F. Peringatan pH
+  if (data.ph === 0 || data.ph < 5.5 || data.ph > 8.5) {
+    warnings.push(`🚨 <b>pH Air Ekstrem (${data.ph}):</b> Kualitas air buruk. Lakukan pengapuran atau pergantian air.`);
+  }
+
+  // G. Peringatan Kedalaman
+  if (data.kedalaman === 0 || data.kedalaman < 0.8) {
+    warnings.push(`⚠️ <b>Kedalaman Air Dangkal (${data.kedalaman} m):</b> Tambahkan pasokan air kolam/tambak.`);
+  }
+
+  // Render Hasil ke HTML (Bisa menampilkan > 2 peringatan sekaligus)
+  if (warnings.length === 0) {
+    container.innerHTML = "<div class='status-good'>✅ Semua parameter kualitas air dalam kondisi normal dan aman.</div>";
+  } else {
+    container.innerHTML = `<ul class="warning-list" style="margin: 0; padding-left: 20px; color: #b91c1c;">` +
+      warnings.map(item => `<li style="margin-bottom: 6px;">${item}</li>`).join("") +
+      `</ul>`;
+  }
 }
 
 // ==========================================
