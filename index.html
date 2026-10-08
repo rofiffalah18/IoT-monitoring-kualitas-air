@@ -4,231 +4,242 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Feeder - Monitoring Kualitas Air</title>
-
-  <!-- Google Fonts & Chart.js CDN -->
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
-    rel="stylesheet">
+  <title>Dashboard Monitoring Kualitas Air Kolam</title>
+  <!-- Chart.js untuk visualisasi grafik -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <!-- File CSS Terpisah -->
   <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-  <div class="container">
-
-    <!-- HEADER -->
-    <header>
-      <div class="brand">
-        <div class="brand-logo">💧</div>
-        <div class="brand-title">
-          <h1>Smart Feeder</h1>
-          <p>Pemantauan Kualitas Air Real-time Berbasis IoT</p>
-        </div>
+  <!-- HEADER DASHBOARD -->
+  <header class="header">
+    <div class="header-container">
+      <div class="header-title">
+        <h1>🌊 Water Quality Monitoring System</h1>
+        <p>Sistem Pemantauan Kualitas Air Kolam Real-Time (24 Jam)</p>
       </div>
-      <div class="header-actions">
-        <div class="last-update" id="txt-last-update">TERAKHIR DIPERBARUI: Loading...</div>
-        <button class="btn-download" onclick="downloadCSV()">
-          <span>📄</span> Unduh CSV
-        </button>
-      </div>
-    </header>
-
-    <!-- DASHBOARD BAGIAN ATAS (GRID 2 KOLOM) -->
-    <div class="top-grid">
-
-      <!-- KOTAK KIRI: INDEKS KUALITAS & SARAN -->
-      <div class="main-status-card">
-        <div class="status-head">
-          <div>
-            <div class="index-label">INDEKS KUALITAS</div>
-            <div class="index-value" id="val-indeks">74.1</div>
-          </div>
-          <span class="badge-status waspada" id="badge-status">Waspada</span>
-        </div>
-
-        <div class="alert-box" id="box-saran-oksigen">
-          <span id="txt-saran-oksigen">Kadar oksigen terlalu tinggi (7.0 ppm). Kurangi kecepatan aerator/kincir
-            air!</span>
-        </div>
-
-        <div class="info-box" id="box-saran-suhu">
-          <strong>Stratifikasi Suhu Kolam:</strong><br>
-          <span id="txt-saran-suhu">Tidak ada stratifikasi suhu signifikan. Air kolam tercampur baik.</span>
-        </div>
-      </div>
-
-      <!-- KOTAK KANAN: KARTU INDIKATOR SENSOR (GRID 3x2) -->
-      <div class="sensors-section">
-        <h3>Data Sensor Terkini</h3>
-        <div class="sensor-grid">
-
-          <!-- Suhu Permukaan -->
-          <div class="sensor-card">
-            <div class="sensor-title">Suhu Permukaan</div>
-            <div class="sensor-value-box">
-              <span class="sensor-val" id="val-suhu1">28.2</span>
-              <span class="sensor-unit">°C</span>
-            </div>
-            <div class="sensor-subtext">Sensor Suhu Atas</div>
-            <div class="sensor-icon">🌡️</div>
-          </div>
-
-          <!-- Suhu Kolom -->
-          <div class="sensor-card">
-            <div class="sensor-title">Suhu Kolom</div>
-            <div class="sensor-value-box">
-              <span class="sensor-val" id="val-suhu2">27.6</span>
-              <span class="sensor-unit">°C</span>
-            </div>
-            <div class="sensor-subtext">Sensor Suhu Tengah</div>
-            <div class="sensor-icon">🌡️</div>
-          </div>
-
-          <!-- Suhu Dasar -->
-          <div class="sensor-card">
-            <div class="sensor-title">Suhu Dasar</div>
-            <div class="sensor-value-box">
-              <span class="sensor-val" id="val-suhu3">26.7</span>
-              <span class="sensor-unit">°C</span>
-            </div>
-            <div class="sensor-subtext">Sensor Suhu Bawah</div>
-            <div class="sensor-icon">🌡️</div>
-          </div>
-
-          <!-- Oksigen Terlarut (DO) -->
-          <div class="sensor-card">
-            <div class="sensor-title">Oksigen Terlarut (DO)</div>
-            <div class="sensor-value-box">
-              <span class="sensor-val" id="val-do">7.0</span>
-              <span class="sensor-unit">ppm</span>
-            </div>
-            <div class="sensor-subtext">Kadar Oksigen</div>
-            <div class="sensor-icon">🫧</div>
-          </div>
-
-          <!-- pH Air -->
-          <div class="sensor-card">
-            <div class="sensor-title">pH Air</div>
-            <div class="sensor-value-box">
-              <span class="sensor-val" id="val-ph">7.1</span>
-            </div>
-            <div class="sensor-subtext">Derajat Keasaman</div>
-            <div class="sensor-icon">🧪</div>
-          </div>
-
-          <!-- Kedalaman Air -->
-          <div class="sensor-card">
-            <div class="sensor-title">Kedalaman</div>
-            <div class="sensor-value-box">
-              <span class="sensor-val" id="val-kedalaman">2.3</span>
-              <span class="sensor-unit">m</span>
-            </div>
-            <div class="sensor-subtext">Ketinggian Air</div>
-            <div class="sensor-icon">📏</div>
-          </div>
-
-        </div>
-      </div>
-
-    </div>
-
-    <!-- SECTION GRAFIK TREN -->
-    <div class="charts-grid">
-
-      <!-- GRAFIK 1: TREN SUHU -->
-      <div class="chart-card">
-        <div class="chart-header">
-          <h3>Tren Suhu</h3>
-          <div class="chart-filter-container">
-            <button class="btn-filter filter-suhu active" onclick="filterSingleChart('suhu', 'jam', event)">Per
-              Jam</button>
-            <button class="btn-filter filter-suhu" onclick="filterSingleChart('suhu', 'hari', event)">Hari Ini</button>
-            <button class="btn-filter filter-suhu" onclick="filterSingleChart('suhu', 'minggu', event)">7 Hari</button>
-            <button class="btn-filter filter-suhu" onclick="filterSingleChart('suhu', 'bulan', event)">30 Hari</button>
-          </div>
-        </div>
-        <div class="chart-box"><canvas id="chartSuhu"></canvas></div>
-      </div>
-
-      <!-- GRAFIK 2: OKSIGEN TERLARUT (DO) -->
-      <div class="chart-card">
-        <div class="chart-header">
-          <h3>Tren Oksigen Terlarut (DO)</h3>
-          <div class="chart-filter-container">
-            <button class="btn-filter filter-do active" onclick="filterSingleChart('do', 'jam', event)">Per Jam</button>
-            <button class="btn-filter filter-do" onclick="filterSingleChart('do', 'hari', event)">Hari Ini</button>
-            <button class="btn-filter filter-do" onclick="filterSingleChart('do', 'minggu', event)">7 Hari</button>
-            <button class="btn-filter filter-do" onclick="filterSingleChart('do', 'bulan', event)">30 Hari</button>
-          </div>
-        </div>
-        <div class="chart-box"><canvas id="chartDO"></canvas></div>
-      </div>
-
-      <!-- GRAFIK 3: pH AIR -->
-      <div class="chart-card">
-        <div class="chart-header">
-          <h3>Tren pH Air</h3>
-          <div class="chart-filter-container">
-            <button class="btn-filter filter-ph active" onclick="filterSingleChart('ph', 'jam', event)">Per Jam</button>
-            <button class="btn-filter filter-ph" onclick="filterSingleChart('ph', 'hari', event)">Hari Ini</button>
-            <button class="btn-filter filter-ph" onclick="filterSingleChart('ph', 'minggu', event)">7 Hari</button>
-            <button class="btn-filter filter-ph" onclick="filterSingleChart('ph', 'bulan', event)">30 Hari</button>
-          </div>
-        </div>
-        <div class="chart-box"><canvas id="chartPH"></canvas></div>
-      </div>
-
-      <!-- GRAFIK 4: KEDALAMAN -->
-      <div class="chart-card">
-        <div class="chart-header">
-          <h3>Tren Kedalaman</h3>
-          <div class="chart-filter-container">
-            <button class="btn-filter filter-kedalaman active"
-              onclick="filterSingleChart('kedalaman', 'jam', event)">Per Jam</button>
-            <button class="btn-filter filter-kedalaman" onclick="filterSingleChart('kedalaman', 'hari', event)">Hari
-              Ini</button>
-            <button class="btn-filter filter-kedalaman" onclick="filterSingleChart('kedalaman', 'minggu', event)">7
-              Hari</button>
-            <button class="btn-filter filter-kedalaman" onclick="filterSingleChart('kedalaman', 'bulan', event)">30
-              Hari</button>
-          </div>
-        </div>
-        <div class="chart-box"><canvas id="chartKedalaman"></canvas></div>
-      </div>
-
-    </div>
-
-    <!-- SECTION HISTORI LOG KONEKSI & UPDATE (BAGIAN BAWAH GRAFIK) -->
-    <div class="log-card">
-      <div class="log-header">
-        <div class="log-title">📋 Riwayat Aktivitas & Status Koneksi ESP32</div>
-        <span class="status-indicator online" id="connection-status-dot">ESP32 Online</span>
-      </div>
-      <div class="table-responsive">
-        <table class="log-table">
-          <thead>
-            <tr>
-              <th>Waktu Log</th>
-              <th>Status Perangkat / Web</th>
-              <th>Status ESP32</th>
-              <th>Keterangan Aktivitas</th>
-            </tr>
-          </thead>
-          <tbody id="log-table-body">
-            <tr>
-              <td colspan="4" style="text-align:center; color:#94a3b8;">Memuat riwayat koneksi...</td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Indikator Koneksi ESP32 (Heartbeat) -->
+      <div class="header-status">
+        <span id="connection-status" class="status-pill offline">
+          <span class="status-dot"></span>
+          <span id="txt-status">Memeriksa Koneksi...</span>
+        </span>
+        <small id="last-update-time">Update Terakhir: -</small>
       </div>
     </div>
+  </header>
 
-  </div>
+  <main class="main-content">
 
-  <!-- File JavaScript Terpisah -->
+    <!-- RINGKASAN INDEKS KUALITAS AIR & ALERT UTAMA -->
+    <section class="overview-section">
+      <div class="card index-card">
+        <h3>Indeks Kualitas Air</h3>
+        <div class="index-display">
+          <span id="val-indeks-kualitas">--</span>
+          <span class="index-scale">/ 100</span>
+        </div>
+        <span id="badge-status" class="badge">Memuat...</span>
+      </div>
+
+      <div class="card alert-card">
+        <h3>⚠️ Peringatan & Rekomendasi Sistem</h3>
+        <div id="alert-container">
+          <p class="alert-item info">Menunggu sinkronisasi data sensor...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- KARTU SENSOR PARAMETER -->
+    <section class="sensor-grid">
+
+      <!-- Suhu Permukaan -->
+      <div class="card sensor-card card-suhu1">
+        <div class="sensor-header">
+          <span class="sensor-icon">🌡️</span>
+          <h4>Suhu Permukaan</h4>
+        </div>
+        <div class="sensor-value">
+          <span id="val-suhu1">--</span> <small>°C</small>
+        </div>
+        <div class="sensor-status" id="status-suhu1">Kondisi: -</div>
+      </div>
+
+      <!-- Suhu Kolom Air -->
+      <div class="card sensor-card card-suhu2">
+        <div class="sensor-header">
+          <span class="sensor-icon">🌡️</span>
+          <h4>Suhu Tengah</h4>
+        </div>
+        <div class="sensor-value">
+          <span id="val-suhu2">--</span> <small>°C</small>
+        </div>
+        <div class="sensor-status" id="status-suhu2">Kondisi: -</div>
+      </div>
+
+      <!-- Suhu Dasar -->
+      <div class="card sensor-card card-suhu3">
+        <div class="sensor-header">
+          <span class="sensor-icon">🌡️</span>
+          <h4>Suhu Dasar</h4>
+        </div>
+        <div class="sensor-value">
+          <span id="val-suhu3">--</span> <small>°C</small>
+        </div>
+        <div class="sensor-status" id="status-suhu3">Kondisi: -</div>
+      </div>
+
+      <!-- Oksigen Terlarut / DO -->
+      <div class="card sensor-card card-do">
+        <div class="sensor-header">
+          <span class="sensor-icon">🫧</span>
+          <h4>Oksigen Terlarut (DO)</h4>
+        </div>
+        <div class="sensor-value">
+          <span id="val-do">--</span> <small>ppm</small>
+        </div>
+        <div class="sensor-status" id="status-do">Kondisi: -</div>
+      </div>
+
+      <!-- Derajat Keasaman / pH -->
+      <div class="card sensor-card card-ph">
+        <div class="sensor-header">
+          <span class="sensor-icon">🧪</span>
+          <h4>pH Air</h4>
+        </div>
+        <div class="sensor-value">
+          <span id="val-ph">--</span> <small>pH</small>
+        </div>
+        <div class="sensor-status" id="status-ph">Kondisi: -</div>
+      </div>
+
+      <!-- Kedalaman Air -->
+      <div class="card sensor-card card-kedalaman">
+        <div class="sensor-header">
+          <span class="sensor-icon">📏</span>
+          <h4>Kedalaman Air</h4>
+        </div>
+        <div class="sensor-value">
+          <span id="val-kedalaman">--</span> <small>m</small>
+        </div>
+        <div class="sensor-status" id="status-kedalaman">Kondisi: -</div>
+      </div>
+
+    </section>
+
+    <!-- GRAFIK TREN 4 PARAMETER (FILTER PER TABEL) -->
+    <section class="chart-section">
+      <div class="charts-grid">
+
+        <!-- 1. Grafik Suhu (3 Line: Permukaan, Tengah, Dasar) -->
+        <div class="card chart-card">
+          <div class="chart-header">
+            <h3>🌡️ Grafik Suhu Air (°C)</h3>
+            <select id="filter-suhu" onchange="updateChartByParam('suhu')">
+              <option value="1h">1 Jam Terakhir</option>
+              <option value="today" selected>Hari Ini</option>
+              <option value="7d">Minggu Ini (7 Hari)</option>
+              <option value="30d">Bulan Ini (30 Hari)</option>
+            </select>
+          </div>
+          <div class="suhu-legend-container">
+            <div class="legend-badge legend-permukaan">
+              <span class="legend-dot"></span> Permukaan
+            </div>
+            <div class="legend-badge legend-tengah">
+              <span class="legend-dot"></span> Tengah
+            </div>
+            <div class="legend-badge legend-dasar">
+              <span class="legend-dot"></span> Dasar
+            </div>
+          </div>
+
+          <div class="chart-wrapper">
+            <canvas id="chartSuhu"></canvas>
+          </div>
+        </div>
+
+        <!-- 2. Grafik DO -->
+        <div class="card chart-card">
+          <div class="chart-header">
+            <h3>🫧 Grafik DO (ppm)</h3>
+            <select id="filter-do" onchange="updateChartByParam('do')">
+              <option value="1h">1 Jam Terakhir</option>
+              <option value="today" selected>Hari Ini</option>
+              <option value="7d">Minggu Ini (7 Hari)</option>
+              <option value="30d">Bulan Ini (30 Hari)</option>
+            </select>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chartDO"></canvas>
+          </div>
+        </div>
+
+        <!-- 3. Grafik pH -->
+        <div class="card chart-card">
+          <div class="chart-header">
+            <h3>🧪 Grafik pH Air</h3>
+            <select id="filter-ph" onchange="updateChartByParam('ph')">
+              <option value="1h">1 Jam Terakhir</option>
+              <option value="today" selected>Hari Ini</option>
+              <option value="7d">Minggu Ini (7 Hari)</option>
+              <option value="30d">Bulan Ini (30 Hari)</option>
+            </select>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chartPH"></canvas>
+          </div>
+        </div>
+
+        <!-- 4. Grafik Kedalaman -->
+        <div class="card chart-card">
+          <div class="chart-header">
+            <h3>📏 Grafik Kedalaman Air (m)</h3>
+            <select id="filter-kedalaman" onchange="updateChartByParam('kedalaman')">
+              <option value="1h">1 Jam Terakhir</option>
+              <option value="today" selected>Hari Ini</option>
+              <option value="7d">Minggu Ini (7 Hari)</option>
+              <option value="30d">Bulan Ini (30 Hari)</option>
+            </select>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="chartKedalaman"></canvas>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TABEL LOG RIWAYAT AKTIVITAS & KONEKSI -->
+    <section class="history-section">
+      <div class="card history-card">
+        <div class="table-header">
+          <h3>📋 Log Aktivitas Perangkat & Transmisi Data</h3>
+          <span class="log-count" id="log-count">Menampilkan 10 data terakhir</span>
+        </div>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Waktu Transmisi</th>
+                <th>Jenis Aktivitas</th>
+                <th>Status Log</th>
+                <th>Keterangan / Pesan Masalah</th>
+              </tr>
+            </thead>
+            <tbody id="log-table-body">
+              <tr>
+                <td colspan="4" class="empty-log">Memuat data log aktivitas...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
   <script src="script.js"></script>
 </body>
 

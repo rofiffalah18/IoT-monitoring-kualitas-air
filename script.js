@@ -1,451 +1,405 @@
 // ==========================================
-// CONFIGURATION & GLOBAL VARIABLES
+// KONFIGURASI UTAMA & SAKELAR MODE
 // ==========================================
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxOC0765Q0jINi5kOR5QyvA_nUyAyEp5g0oFE64U-sLyx8IgtdPZlOqbbVZ5kSYAm-O1w/exec";
+// Copy URL Web App Google Apps Script kamu di sini:
+const SCRIPT_URL = "ISI_DENGAN_URL_GOOGLE_APPS_SCRIPT_KAMU";
 
-let chartSuhu, chartDO, chartPH, chartKedalaman;
-let globalAllData = [];
+// SAKELAR MODE TESTING:
+// - Set false untuk Operasional Real-Time 24 Jam (Jadwal :00 & :30, toleransi 31 menit)
+// - Set true untuk Pengetesan Cepat (Toleransi 1.5 menit / 90 detik)
+const IS_TESTING_MODE = false;
 
-// Variabel Paginasi Tabel Riwayat
-let currentPage = 1;
-const rowsPerPage = 15;
-
-// Filter aktif untuk masing-masing grafik (default: 'jam')
-const chartFilters = {
-  suhu: 'jam',
-  do: 'jam',
-  ph: 'jam',
-  kedalaman: 'jam'
-};
+const FETCH_INTERVAL_MS = 10000; // Web menarik data dari Google Sheets tiap 10 detik
+const rowsPerPage = 10;
+let waterChart = null;
 
 // ==========================================
-// HELPER FUNCTIONS
+// INISIALISASI SAAT HALAMAN WEB DIMUAT
 // ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+  initChart();
+  fetchData();
+  setInterval(fetchData, FETCH_INTERVAL_MS);
+});
 
-// Helper 1: Mendapatkan Judul Sumbu X berdasarkan filter
-function getXAxisTitle(timeframe) {
-  if (timeframe === 'jam') return 'Menit Ke-';
-  if (timeframe === 'hari') return 'Jam Ke-';
-  if (timeframe === 'minggu') return 'Hari';
-  if (timeframe === 'bulan') return 'Tanggal';
-  return '';
-}
+// ==========================================
+// 1. FETCH DATA DARI GOOGLE APPS SCRIPT
+// ==========================================
+async function fetchData() {
+  try {
+    const response = await fetch(SCRIPT_URL);
+    const result = await response.json();
 
-// Helper 2: Formatter Label Sumbu X Dinamis
-function formatTimeLabels(dataArr, timeframe) {
-  const namaHariFull = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+    if (result && result.length > 0) {
+      const latestData = result[result.length - 1];
 
-  return dataArr.map(d => {
-    const dateObj = new Date(d.timestamp);
-    const isValidDate = !isNaN(dateObj.getTime());
-
-    if (timeframe === 'jam') {
-      return isValidDate ? dateObj.getMinutes() : String(d.timestamp);
-    } else if (timeframe === 'hari') {
-      return isValidDate ? dateObj.getHours() : String(d.timestamp);
-    } else if (timeframe === 'minggu') {
-      return isValidDate ? namaHariFull[dateObj.getDay()] : String(d.timestamp);
-    } else if (timeframe === 'bulan') {
-      return isValidDate ? dateObj.getDate() : String(d.timestamp);
+      // Update UI Dashboard
+      updateLastUpdateTime(latestData.timestamp);
+      checkESP32Status(latestData.timestamp);
+      updateSensorCards(latestData);
+      calculateWaterQualityIndex(latestData);
+      renderAlerts(latestData);
+      updateChartData(result);
+      renderActivityHistory(result);
+    } else {
+      showEmptyState();
     }
-    return String(d.timestamp);
-  });
-}
-
-// Helper 3: Filter Rentang Data Grafik
-function getFilteredDataByTimeframe(timeframe) {
-  if (!globalAllData || globalAllData.length === 0) return [];
-  const now = new Date();
-
-  if (timeframe === 'jam') {
-    const oneHourAgo = new Date(now.getTime() - (1 * 60 * 60 * 1000));
-    const recent = globalAllData.filter(d => new Date(d.timestamp) >= oneHourAgo);
-    return recent.length > 0 ? recent : globalAllData.slice(-12);
-  } else if (timeframe === 'hari') {
-    const twentyFourHoursAgo = new Date(now.getTime() - (24 * 60 * 60 * 1000));
-    return globalAllData.filter(d => new Date(d.timestamp) >= twentyFourHoursAgo);
-  } else if (timeframe === 'minggu') {
-    const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
-    return globalAllData.filter(d => new Date(d.timestamp) >= sevenDaysAgo);
-  } else if (timeframe === 'bulan') {
-    const thirtyDaysAgo = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000));
-    return globalAllData.filter(d => new Date(d.timestamp) >= thirtyDaysAgo);
+  } catch (error) {
+    console.error("Gagal mengambil data dari server:", error);
+    const txtStatus = document.getElementById('txt-status');
+    const statusContainer = document.getElementById('connection-status');
+    if (txtStatus && statusContainer) {
+      statusContainer.className = "status-pill offline";
+      txtStatus.innerText = "Error Koneksi Server";
+    }
   }
-  return globalAllData.slice(-12);
 }
 
-// Helper 4: Opsi Standar Chart.js
-function createChartOptions(yAxisTitle) {
-  return {
-    responsive: true,
-    maintainAspectRatio: false,
-    scales: {
-      x: {
-        title: {
-          display: true,
-          text: 'Menit Ke-',
-          font: { weight: 'bold', size: 11 }
-        },
-        ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 12 }
-      },
-      y: {
-        title: {
-          display: true,
-          text: yAxisTitle,
-          font: { weight: 'bold', size: 11 }
-        }
-      }
-    }
-  };
-}
-
-// Helper 5: Pengecekan Status ESP32 (Termasuk Jam Kerja 06:00 - 18:00)
+// ==========================================
+// 2. CEK STATUS KONEKSI ESP32 (HEARTBEAT)
+// ==========================================
 function checkESP32Status(lastTimestamp) {
-  const statusDot = document.getElementById('connection-status-dot');
-  if (!statusDot || !lastTimestamp) return;
+  const statusContainer = document.getElementById('connection-status');
+  const txtStatus = document.getElementById('txt-status');
+  if (!statusContainer || !txtStatus || !lastTimestamp) return;
 
   const now = new Date();
-  const currentHour = now.getHours();
-
-  // Cek jika di luar jam operasional (18.00 sore - 06.00 pagi)
-  if (currentHour < 6 || currentHour >= 18) {
-    statusDot.className = "status-indicator offline";
-    statusDot.innerText = "ESP32 Standby (Luar Jam Kerja)";
-    return;
-  }
-
-  // Jika dalam jam kerja (06.00 - 18.00), cek toleransi keterlambatan 35 menit
   const lastDataTime = new Date(lastTimestamp);
   const diffInMinutes = (now - lastDataTime) / (1000 * 60);
 
-  if (diffInMinutes > 35 || isNaN(diffInMinutes)) {
-    statusDot.className = "status-indicator offline";
-    statusDot.innerText = "ESP32 Offline";
+  // Toleransi waktu: 31 menit untuk produksi, 1.5 menit untuk testing
+  const maxToleranceMinutes = IS_TESTING_MODE ? 1.5 : 31;
+
+  if (diffInMinutes > maxToleranceMinutes || isNaN(diffInMinutes)) {
+    statusContainer.className = "status-pill offline";
+    txtStatus.innerText = "ESP32 Terputus (Offline)";
   } else {
-    statusDot.className = "status-indicator online";
-    statusDot.innerText = "ESP32 Online";
+    statusContainer.className = "status-pill online";
+    txtStatus.innerText = "ESP32 Terhubung (Online)";
   }
 }
 
-// Helper 6: Rekomendasi & Analisis Kualitas Air Dinamis
-function updateStatusRecommendation(lastData) {
-  const doVal = Number(lastData.do) || 0;
-  const suhu1 = Number(lastData.suhu1) || 0;
-  const suhu3 = Number(lastData.suhu3) || 0;
+function updateLastUpdateTime(timestampStr) {
+  const el = document.getElementById('last-update-time');
+  if (el) el.innerText = `Update Terakhir: ${timestampStr || '-'}`;
+}
 
-  // Analisis Oksigen Terlarut (DO)
-  const elMsgDO = document.getElementById('msg-oksigen');
-  if (elMsgDO) {
-    if (doVal < 4.0) {
-      elMsgDO.innerText = `Kadar oksigen rendah (${doVal} ppm). Segera nyalakan/tambah kecepatan aerator!`;
-      elMsgDO.style.color = '#dc2626';
-    } else if (doVal >= 4.0 && doVal <= 6.5) {
-      elMsgDO.innerText = `Kadar oksigen normal (${doVal} ppm). Kondisi air optimal.`;
-      elMsgDO.style.color = '#16a34a';
+// ==========================================
+// 3. UPDATE KARTU SENSOR & DETEKSI FISIK ERROR
+// ==========================================
+function updateSensorCards(data) {
+  const s1 = Number(data.suhu1) || 0;
+  const s2 = Number(data.suhu2) || 0;
+  const s3 = Number(data.suhu3) || 0;
+  const doVal = Number(data.do) || 0;
+  const phVal = Number(data.ph) || 0;
+  const kedalaman = Number(data.kedalaman) || 0;
+
+  // Render Angka ke HTML
+  document.getElementById('val-suhu1').innerText = s1.toFixed(1);
+  document.getElementById('val-suhu2').innerText = s2.toFixed(1);
+  document.getElementById('val-suhu3').innerText = s3.toFixed(1);
+  document.getElementById('val-do').innerText = doVal.toFixed(1);
+  document.getElementById('val-ph').innerText = phVal.toFixed(1);
+  document.getElementById('val-kedalaman').innerText = kedalaman.toFixed(1);
+
+  // Evaluasi Fisik Sensor & Tambah Class Danger Jika Error
+  evaluateSensorHealth('.card-suhu1', 'status-suhu1', s1 <= 0 || s1 >= 50, "Sensor Terputus!", "Normal");
+  evaluateSensorHealth('.card-suhu2', 'status-suhu2', s2 <= 0 || s2 >= 50, "Sensor Terputus!", "Normal");
+  evaluateSensorHealth('.card-suhu3', 'status-suhu3', s3 <= 0 || s3 >= 50, "Sensor Terputus!", "Normal");
+  evaluateSensorHealth('.card-do', 'status-do', doVal < 3.0 || doVal > 9.0, doVal < 3.0 ? "DO Kritis (Rendah)!" : "DO Sangat Tinggi", "Normal");
+  evaluateSensorHealth('.card-ph', 'status-ph', phVal < 4.0 || phVal > 9.0, "pH Ekstrem (Bahaya)!", "Normal");
+  evaluateSensorHealth('.card-kedalaman', 'status-kedalaman', kedalaman <= 0, "Sensor Bermasalah!", "Normal");
+}
+
+function evaluateSensorHealth(cardSelector, statusId, isErrorCondition, errorMsg, normalMsg) {
+  const cardEl = document.querySelector(cardSelector);
+  const statusEl = document.getElementById(statusId);
+  if (!cardEl || !statusEl) return;
+
+  if (isErrorCondition) {
+    cardEl.classList.add('card-sensor-danger');
+    statusEl.innerText = `Kondisi: ⚠️ ${errorMsg}`;
+    statusEl.style.color = '#b91c1c';
+  } else {
+    cardEl.classList.remove('card-sensor-danger');
+    statusEl.innerText = `Kondisi: ${normalMsg}`;
+    statusEl.style.color = '#64748b';
+  }
+}
+
+// ==========================================
+// 4. LOGIKA BOBOT PENALTI INDEKS KUALITAS AIR
+// ==========================================
+function calculateWaterQualityIndex(data) {
+  let score = 100;
+
+  const doVal = Number(data.do) || 0;
+  const phVal = Number(data.ph) || 0;
+  const s1 = Number(data.suhu1) || 0;
+  const s3 = Number(data.suhu3) || 0;
+  const diffSuhu = Math.abs(s1 - s3);
+
+  // 1. Bahaya Tingkat 1 (Kritis): Oksigen Terlarut (DO)
+  if (doVal < 4.0 || doVal > 8.0) {
+    score -= 35;
+  }
+
+  // 2. Bahaya Tingkat 2 (Kimia): pH Air
+  if (phVal < 4.0 || phVal > 9.0) {
+    score -= 40; // Ekstrem
+  } else if (phVal < 5.5 || phVal > 8.5) {
+    score -= 25; // Di luar rentang aman
+  }
+
+  // 3. Bahaya Tingkat 3 (Fisik): Stratifikasi Suhu
+  if (diffSuhu >= 1.5) {
+    score -= 15;
+  }
+
+  // Batasi skor di rentang 0 - 100
+  score = Math.max(0, Math.min(100, score));
+
+  // Render ke UI
+  const elIndexValue = document.getElementById('val-indeks-kualitas');
+  const badgeStatus = document.getElementById('badge-status');
+
+  if (elIndexValue && badgeStatus) {
+    elIndexValue.innerText = score.toFixed(0);
+
+    if (score >= 85) {
+      badgeStatus.className = "badge badge-success";
+      badgeStatus.innerText = "Optimal";
+    } else if (score >= 65) {
+      badgeStatus.className = "badge badge-waspada";
+      badgeStatus.innerText = "Waspada";
     } else {
-      elMsgDO.innerText = `Kadar oksigen terlalu tinggi (${doVal} ppm). Kurangi kecepatan aerator/kincir air!`;
-      elMsgDO.style.color = '#d97706';
-    }
-  }
-
-  // Analisis Stratifikasi Suhu
-  const elMsgSuhu = document.getElementById('msg-stratifikasi');
-  if (elMsgSuhu) {
-    const diffSuhu = Math.abs(suhu1 - suhu3);
-    if (diffSuhu >= 1.5) {
-      elMsgSuhu.innerText = `Terjadi stratifikasi suhu kolam (Selisih: ${diffSuhu.toFixed(1)} °C). Perlu pengadukan air!`;
-      elMsgSuhu.style.color = '#dc2626';
-    } else {
-      elMsgSuhu.innerText = `Tidak ada stratifikasi suhu signifikan. Air kolam tercampur baik.`;
-      elMsgSuhu.style.color = '#16a34a';
+      badgeStatus.className = "badge badge-danger";
+      badgeStatus.innerText = "Bahaya";
     }
   }
 }
 
 // ==========================================
-// CHART INITIALIZATION & RENDERING
+// 5. RENDER ALERT & REKOMENDASI DINAMIS
 // ==========================================
+function renderAlerts(data) {
+  const alertContainer = document.getElementById('alert-container');
+  if (!alertContainer) return;
 
-function initCharts() {
-  const defaultLabels = ['0', '5', '10', '15'];
+  const doVal = Number(data.do) || 0;
+  const phVal = Number(data.ph) || 0;
+  const diffSuhu = Math.abs((Number(data.suhu1) || 0) - (Number(data.suhu3) || 0));
 
-  chartSuhu = new Chart(document.getElementById('chartSuhu'), {
-    type: 'line',
-    data: {
-      labels: defaultLabels,
-      datasets: [
-        { label: 'Suhu Permukaan', data: [0, 0, 0, 0], borderColor: '#0284c7', backgroundColor: 'rgba(2, 132, 199, 0.1)', borderWidth: 2, pointRadius: 2, tension: 0.3 },
-        { label: 'Suhu Kolom', data: [0, 0, 0, 0], borderColor: '#0d9488', backgroundColor: 'rgba(13, 148, 136, 0.1)', borderWidth: 2, pointRadius: 2, tension: 0.3 },
-        { label: 'Suhu Dasar', data: [0, 0, 0, 0], borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)', borderWidth: 2, pointRadius: 2, tension: 0.3 }
-      ]
-    },
-    options: createChartOptions('Suhu (°C)')
-  });
+  let alertsHTML = '';
 
-  chartDO = new Chart(document.getElementById('chartDO'), {
-    type: 'line',
-    data: {
-      labels: defaultLabels,
-      datasets: [{ label: 'Oksigen Terlarut', data: [0, 0, 0, 0], borderColor: '#0284c7', backgroundColor: 'rgba(2, 132, 199, 0.1)', borderWidth: 2, pointRadius: 2, tension: 0.3 }]
-    },
-    options: createChartOptions('Kadar Oksigen (ppm)')
-  });
-
-  chartPH = new Chart(document.getElementById('chartPH'), {
-    type: 'line',
-    data: {
-      labels: defaultLabels,
-      datasets: [{ label: 'pH Air', data: [0, 0, 0, 0], borderColor: '#0284c7', backgroundColor: 'rgba(2, 132, 199, 0.1)', borderWidth: 2, pointRadius: 2, tension: 0.3 }]
-    },
-    options: createChartOptions('Tingkat Keasaman (pH)')
-  });
-
-  chartKedalaman = new Chart(document.getElementById('chartKedalaman'), {
-    type: 'line',
-    data: {
-      labels: defaultLabels,
-      datasets: [{ label: 'Kedalaman Air', data: [0, 0, 0, 0], borderColor: '#0284c7', backgroundColor: 'rgba(2, 132, 199, 0.1)', borderWidth: 2, pointRadius: 2, tension: 0.3 }]
-    },
-    options: createChartOptions('Kedalaman (Meter)')
-  });
-}
-
-function renderChartByType(chartType) {
-  const timeframe = chartFilters[chartType];
-  const dataset = getFilteredDataByTimeframe(timeframe);
-  const labels = formatTimeLabels(dataset, timeframe);
-  const xAxisTitle = getXAxisTitle(timeframe);
-
-  let targetChart;
-  if (chartType === 'suhu') targetChart = chartSuhu;
-  else if (chartType === 'do') targetChart = chartDO;
-  else if (chartType === 'ph') targetChart = chartPH;
-  else if (chartType === 'kedalaman') targetChart = chartKedalaman;
-
-  if (targetChart) {
-    targetChart.data.labels = labels;
-    targetChart.options.scales.x.title.text = xAxisTitle;
-
-    if (chartType === 'suhu') {
-      targetChart.data.datasets[0].data = dataset.map(d => Number(d.suhu1) || 0);
-      targetChart.data.datasets[1].data = dataset.map(d => Number(d.suhu2) || 0);
-      targetChart.data.datasets[2].data = dataset.map(d => Number(d.suhu3) || 0);
-    } else if (chartType === 'do') {
-      targetChart.data.datasets[0].data = dataset.map(d => Number(d.do) || 0);
-    } else if (chartType === 'ph') {
-      targetChart.data.datasets[0].data = dataset.map(d => Number(d.ph) || 0);
-    } else if (chartType === 'kedalaman') {
-      targetChart.data.datasets[0].data = dataset.map(d => Number(d.kedalaman) || 0);
-    }
-
-    targetChart.update();
+  if (doVal < 4.0) {
+    alertsHTML += `<div class="alert-item danger">⚠️ <strong>Bahaya DO Rendah:</strong> Kadar oksigen (${doVal} ppm) kritis. Segera nyalakan kincir/aerator!</div>`;
   }
-}
-
-function updateAllCharts() {
-  renderChartByType('suhu');
-  renderChartByType('do');
-  renderChartByType('ph');
-  renderChartByType('kedalaman');
-}
-
-function filterSingleChart(chartType, timeframe, evt) {
-  chartFilters[chartType] = timeframe;
-  if (evt && evt.target) {
-    const parent = evt.target.closest('.chart-filter-container');
-    if (parent) {
-      parent.querySelectorAll('.btn-filter').forEach(btn => btn.classList.remove('active'));
-      evt.target.classList.add('active');
-    }
+  if (phVal < 5.5 || phVal > 8.5) {
+    alertsHTML += `<div class="alert-item warning">⚠️ <strong>Peringatan pH:</strong> Nilai pH (${phVal}) di luar batas aman (6.5 - 8.5). Lakukan pengondisian air!</div>`;
   }
-  renderChartByType(chartType);
+  if (diffSuhu >= 1.5) {
+    alertsHTML += `<div class="alert-item warning">⚠️ <strong>Stratifikasi Suhu:</strong> Selisih suhu permukaan & dasar ${diffSuhu.toFixed(1)}°C. Perlu sirkulasi/pengadukan air!</div>`;
+  }
+
+  if (alertsHTML === '') {
+    alertsHTML = `<div class="alert-item success">✅ <strong>Kondisi Kolam Aman:</strong> Seluruh parameter kualitas air berada pada rentang ideal.</div>`;
+  }
+
+  alertContainer.innerHTML = alertsHTML;
 }
 
 // ==========================================
-// RENDER TABEL LOG & PAGINASI 15 BARIS
+// 6. RENDER LOG RIWAYAT AKTIVITAS & KONEKSI
 // ==========================================
-
 function renderActivityHistory(dataArray) {
   const tableBody = document.getElementById('log-table-body');
   if (!tableBody) return;
 
-  if (!dataArray || dataArray.length === 0) {
-    tableBody.innerHTML = `
-      <tr>
-        <td colspan="4" style="text-align: center; color: #94a3b8; padding: 12px;">
-          Belum ada riwayat aktivitas data.
-        </td>
-      </tr>`;
-    renderPaginationControls(0);
-    return;
-  }
-
   const reversedData = [...dataArray].reverse();
-  const totalItems = reversedData.length;
-  const totalPages = Math.ceil(totalItems / rowsPerPage);
-
-  if (currentPage > totalPages) currentPage = totalPages;
-  if (currentPage < 1) currentPage = 1;
-
-  const startIndex = (currentPage - 1) * rowsPerPage;
-  const endIndex = startIndex + rowsPerPage;
-  const paginatedLogs = reversedData.slice(startIndex, endIndex);
-
+  const paginatedLogs = reversedData.slice(0, rowsPerPage);
   const now = new Date();
-  const currentHour = now.getHours();
-  const isWorkHours = currentHour >= 6 && currentHour < 18;
 
   let htmlContent = '';
   paginatedLogs.forEach((item, index) => {
-    // Deteksi jika data paling atas terjadi di luar jam kerja
-    const isLatestAndOff = (index === 0) && !isWorkHours;
+    const itemTime = new Date(item.timestamp);
+    const diffMinutes = (now - itemTime) / (1000 * 60);
+
+    // Cek apakah data ini data paling akhir dan sudah lewat toleransi offline
+    const maxTol = IS_TESTING_MODE ? 1.5 : 31;
+    const isOfflineEvent = (index === 0) && (diffMinutes > maxTol);
+
+    let statusBadge = '';
+    let jenisAktivitas = '';
+    let keteranganText = '';
+
+    if (isOfflineEvent) {
+      jenisAktivitas = `<span style="color: #e11d48; font-weight: 600;">⚠️ Terputus</span>`;
+      statusBadge = `<span class="status-pill offline">🔴 Offline</span>`;
+      keteranganText = `ESP32 tidak mengirimkan data dalam batas toleransi jadwal.`;
+    } else if (item.status === 'WARNING') {
+      jenisAktivitas = `<span style="color: #d97706; font-weight: 600;">⚠️ Sensor Warning</span>`;
+      statusBadge = `<span class="badge badge-waspada">Ada Masalah</span>`;
+      keteranganText = `${item.catatan || 'Data sensor di luar rentang normal.'} (Suhu: ${item.suhu1}°C, DO: ${item.do}, pH: ${item.ph})`;
+    } else {
+      jenisAktivitas = `<span style="color: #0284c7; font-weight: 600;">📥 Kirim Data</span>`;
+      statusBadge = `<span class="badge badge-success">Normal</span>`;
+      keteranganText = `Transmisi Berhasil — Suhu: ${item.suhu1}°C | DO: ${item.do} ppm | pH: ${item.ph} | Kedalaman: ${item.kedalaman}m`;
+    }
 
     htmlContent += `
       <tr>
-        <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;">${item.timestamp || '-'}</td>
-        <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;">
-          <span style="color:${isLatestAndOff ? '#64748b' : '#0284c7'}; font-weight:600;">
-            ${isLatestAndOff ? 'Non-Aktif' : 'Aktif'}
-          </span>
-        </td>
-        <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;">
-          <span style="color:${isLatestAndOff ? '#d97706' : '#16a34a'}; font-weight:600;">
-            ${isLatestAndOff ? 'Standby' : 'Online'}
-          </span>
-        </td>
-        <td style="padding: 10px; border-bottom: 1px solid #f1f5f9;">
-          ${isLatestAndOff ? 'ESP32 mati (Luar jam operasional 06:00-18:00)' : 'Pengiriman data sensor berhasil'}
-        </td>
+        <td><strong>${item.timestamp || '-'}</strong></td>
+        <td>${jenisAktivitas}</td>
+        <td>${statusBadge}</td>
+        <td>${keteranganText}</td>
       </tr>
     `;
   });
 
   tableBody.innerHTML = htmlContent;
-  renderPaginationControls(totalPages);
 }
 
-function renderPaginationControls(totalPages) {
-  let paginationContainer = document.getElementById('pagination-container');
-  
-  if (!paginationContainer) {
-    const tableResp = document.querySelector('.table-responsive');
-    if (tableResp) {
-      paginationContainer = document.createElement('div');
-      paginationContainer.id = 'pagination-container';
-      paginationContainer.style.cssText = 'display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding: 0 4px;';
-      tableResp.after(paginationContainer);
-    } else {
-      return;
-    }
+// ==========================================
+// VISUALISASI GRAFIK TREN (CHART.JS - FIX FILTER & 6 PARAMETER)
+// ==========================================
+// Variabel global 4 grafik & penyimpanan data mentah
+let chartSuhu, chartDO, chartPH, chartKedalaman;
+let rawGlobalData = [];
+
+// Inisialisasi Grafik
+function initChart() {
+  // 1. Grafik Suhu Khusus dengan 3 Garis
+  // Di file script.js
+  const ctxSuhu = document.getElementById('chartSuhu');
+  if (ctxSuhu) {
+    chartSuhu = new Chart(ctxSuhu, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [
+          {
+            label: 'Permukaan',
+            data: [],
+            borderColor: '#6FE6FC', // Samakan dengan warna .legend-dot Permukaan
+            backgroundColor: 'rgba(234, 88, 12, 0.1)',
+            tension: 0.3
+          },
+          {
+            label: 'Tengah',
+            data: [],
+            borderColor: '#F7ADAD', // Samakan dengan warna .legend-dot Tengah
+            backgroundColor: 'rgba(220, 38, 38, 0.1)',
+            tension: 0.3
+          },
+          {
+            label: 'Dasar',
+            data: [],
+            borderColor: '#5003C0', // Samakan dengan warna .legend-dot Dasar
+            backgroundColor: 'rgba(190, 18, 60, 0.1)',
+            tension: 0.3
+          }
+        ]
+      },
+      // ... options
+    });
   }
 
-  if (totalPages <= 1) {
-    paginationContainer.innerHTML = '';
-    return;
-  }
-
-  paginationContainer.innerHTML = `
-    <span style="font-size: 13px; color: #64748b; font-weight: 500;">
-      Halaman <b>${currentPage}</b> dari <b>${totalPages}</b>
-    </span>
-    <div style="display: flex; gap: 8px;">
-      <button onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''} 
-        style="padding: 6px 12px; font-size: 12px; font-weight: 600; border: 1px solid #cbd5e1; border-radius: 6px; background: ${currentPage === 1 ? '#f1f5f9' : '#ffffff'}; color: ${currentPage === 1 ? '#94a3b8' : '#0f172a'}; cursor: ${currentPage === 1 ? 'not-allowed' : 'pointer'};">
-        ← Sblmnya
-      </button>
-      <button onclick="changePage(1)" ${currentPage === totalPages ? 'disabled' : ''} 
-        style="padding: 6px 12px; font-size: 12px; font-weight: 600; border: 1px solid #cbd5e1; border-radius: 6px; background: ${currentPage === totalPages ? '#f1f5f9' : '#ffffff'}; color: ${currentPage === totalPages ? '#94a3b8' : '#0f172a'}; cursor: ${currentPage === totalPages ? 'not-allowed' : 'pointer'};">
-        Lanjutnya →
-      </button>
-    </div>
-  `;
+  // 2. Grafik Single Parameter (DO, pH, Kedalaman)
+  chartDO = createSingleChart('chartDO', 'DO (ppm)', '#0284c7', 'rgba(56, 189, 248, 0.15)');
+  chartPH = createSingleChart('chartPH', 'pH Air', '#16a34a', 'rgba(74, 222, 128, 0.15)');
+  chartKedalaman = createSingleChart('chartKedalaman', 'Kedalaman (m)', '#9333ea', 'rgba(192, 132, 252, 0.15)');
 }
 
-function changePage(direction) {
-  currentPage += direction;
-  renderActivityHistory(globalAllData);
+function createSingleChart(canvasId, labelText, lineColor, fillColor) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return null;
+
+  return new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: labelText,
+        data: [],
+        borderColor: lineColor,
+        backgroundColor: fillColor,
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { grid: { display: false } }, y: { beginAtZero: false } }
+    }
+  });
 }
 
-// ==========================================
-// DATA FETCHING FROM GOOGLE SHEETS
-// ==========================================
+function updateChartData(dataArray) {
+  rawGlobalData = dataArray;
+  updateChartByParam('suhu');
+  updateChartByParam('do');
+  updateChartByParam('ph');
+  updateChartByParam('kedalaman');
+}
 
-async function loadDataFromGoogleSheets() {
-  if (!GOOGLE_SCRIPT_URL) return;
+// Logika Filter Per Tabel
+function updateChartByParam(paramType) {
+  if (!rawGlobalData || rawGlobalData.length === 0) return;
 
-  const tableBody = document.getElementById('log-table-body');
-  const statusDot = document.getElementById('connection-status-dot');
+  let filterValue;
+  if (paramType === 'suhu') filterValue = document.getElementById('filter-suhu').value;
+  if (paramType === 'do') filterValue = document.getElementById('filter-do').value;
+  if (paramType === 'ph') filterValue = document.getElementById('filter-ph').value;
+  if (paramType === 'kedalaman') filterValue = document.getElementById('filter-kedalaman').value;
 
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+  const now = new Date();
 
-    const response = await fetch(GOOGLE_SCRIPT_URL, { signal: controller.signal });
-    clearTimeout(timeoutId);
+  // Filter rentang waktu
+  const filteredData = rawGlobalData.filter(item => {
+    if (!item.timestamp) return false;
+    const itemDate = new Date(item.timestamp);
+    const diffHours = (now - itemDate) / (1000 * 60 * 60);
 
-    if (!response.ok) throw new Error("Respon server gagal");
+    if (filterValue === '1h') return diffHours <= 1;
+    if (filterValue === 'today') return itemDate.toDateString() === now.toDateString();
+    if (filterValue === '7d') return diffHours <= (24 * 7);
+    if (filterValue === '30d') return diffHours <= (24 * 30);
+    return true;
+  });
 
-    const result = await response.json();
-    globalAllData = result.data || [];
+  const labels = filteredData.map(item => {
+    if (!item.timestamp) return '';
+    const parts = item.timestamp.split(' ');
+    return (filterValue === '7d' || filterValue === '30d') ? item.timestamp : parts[1];
+  });
 
-    if (globalAllData.length === 0) {
-      renderActivityHistory([]);
-      if (statusDot) {
-        statusDot.className = "status-indicator offline";
-        statusDot.innerText = "ESP32 Offline";
-      }
-      return;
-    }
-
-    const lastData = globalAllData[globalAllData.length - 1];
-
-    // Cek Status Online/Standby/Offline
-    checkESP32Status(lastData.timestamp);
-
-    // Update Teks Rekomendasi
-    updateStatusRecommendation(lastData);
-
-    // Update Teks Terakhir Diperbarui
-    const txtLastUpdate = document.getElementById('txt-last-update');
-    if (txtLastUpdate) {
-      txtLastUpdate.innerText = "TERAKHIR DIPERBARUI: " + (lastData.timestamp || '-');
-    }
-
-    // Update Kartu Nilai Sensor Real-time
-    if (document.getElementById('val-suhu1')) document.getElementById('val-suhu1').innerText = lastData.suhu1 ?? 0;
-    if (document.getElementById('val-suhu2')) document.getElementById('val-suhu2').innerText = lastData.suhu2 ?? 0;
-    if (document.getElementById('val-suhu3')) document.getElementById('val-suhu3').innerText = lastData.suhu3 ?? 0;
-    if (document.getElementById('val-do')) document.getElementById('val-do').innerText = lastData.do ?? 0;
-    if (document.getElementById('val-ph')) document.getElementById('val-ph').innerText = lastData.ph ?? 0;
-    if (document.getElementById('val-kedalaman')) document.getElementById('val-kedalaman').innerText = lastData.kedalaman ?? 0;
-
-    // Refresh Grafik & Tabel Riwayat Log
-    updateAllCharts();
-    renderActivityHistory(globalAllData);
-
-  } catch (err) {
-    console.error("Gagal terhubung ke Google Sheets:", err);
-    if (tableBody) {
-      tableBody.innerHTML = `
-        <tr>
-          <td colspan="4" style="text-align: center; color: #ef4444; padding: 12px; font-weight: 600;">
-            Gagal terhubung ke server / ESP32 Offline.
-          </td>
-        </tr>`;
-    }
-    if (statusDot) {
-      statusDot.className = "status-indicator offline";
-      statusDot.innerText = "ESP32 Offline";
-    }
+  // Khusus Grafik Suhu: Update 3 dataset sekaligus
+  if (paramType === 'suhu' && chartSuhu) {
+    chartSuhu.data.labels = labels;
+    chartSuhu.data.datasets[0].data = filteredData.map(i => Number(i.suhu1) || 0);
+    chartSuhu.data.datasets[1].data = filteredData.map(i => Number(i.suhu2) || 0);
+    chartSuhu.data.datasets[2].data = filteredData.map(i => Number(i.suhu3) || 0);
+    chartSuhu.update();
+  } else if (paramType === 'do' && chartDO) {
+    updateDataset(chartDO, labels, filteredData.map(i => Number(i.do) || 0));
+  } else if (paramType === 'ph' && chartPH) {
+    updateDataset(chartPH, labels, filteredData.map(i => Number(i.ph) || 0));
+  } else if (paramType === 'kedalaman' && chartKedalaman) {
+    updateDataset(chartKedalaman, labels, filteredData.map(i => Number(i.kedalaman) || 0));
   }
 }
 
-// ==========================================
-// APP INITIALIZATION
-// ==========================================
+function updateDataset(chartObj, labels, dataPoints) {
+  if (!chartObj) return;
+  chartObj.data.labels = labels;
+  chartObj.data.datasets[0].data = dataPoints;
+  chartObj.update();
+}
 
-window.onload = () => {
-  initCharts();
-  loadDataFromGoogleSheets();
-  setInterval(loadDataFromGoogleSheets, 10000); // Polling data tiap 10 detik
-};
+function showEmptyState() {
+  document.getElementById('log-table-body').innerHTML = `<tr><td colspan="4" class="empty-log">Belum ada data riwayat tersedia.</td></tr>`;
+}

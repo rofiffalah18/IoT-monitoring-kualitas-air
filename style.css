@@ -5,7 +5,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Plus Jakarta Sans", sans-serif;
 }
 
 body {
@@ -16,7 +16,7 @@ body {
 }
 
 /* ==========================================
-   HEADER
+   HEADER (GRADIENT PASTEL)
    ========================================== */
 .header {
   background: #B5BAFF;
@@ -64,8 +64,8 @@ body {
   border-radius: 20px;
   font-size: 0.85rem;
   font-weight: 600;
-  background-color: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.4);
+  color: #334155;
 }
 
 .status-dot {
@@ -213,7 +213,7 @@ body {
 }
 
 /* ==========================================
-   SENSOR GRID
+   SENSOR GRID & DIVERSIFIKASI WARNA KARTU (BORDER GRADIENT)
    ========================================== */
 .sensor-grid {
   display: grid;
@@ -225,6 +225,14 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  border-radius: 12px;
+  padding: 18px;
+  transition: all 0.3s ease;
+
+  /* Properti dasar untuk border gradient */
+  border: 3px solid transparent;
+  background-origin: border-box;
+  background-clip: padding-box, border-box;
 }
 
 .sensor-header {
@@ -236,7 +244,6 @@ body {
 
 .sensor-header h4 {
   font-size: 0.85rem;
-  color: #2d343e;
   font-weight: bold;
 }
 
@@ -259,33 +266,206 @@ body {
   color: #64748b;
 }
 
-.highlight-card {
-  border: 1.5px solid #38bdf8;
-  background: #f0f9ff;
+/* Suhu Permukaan - Gradient Oranye */
+.card-suhu1 {
+  background-image: linear-gradient(#fff, #fff), linear-gradient(135deg, #4ED7F1, #6FE6FC);
+}
+
+.card-suhu1 .sensor-header h4 {
+  color: #000;
+}
+
+.card-suhu1 .sensor-value {
+  color: #000;
+}
+
+/* Suhu Kolom - Gradient Koral */
+.card-suhu2 {
+  background-image: linear-gradient(#fff, #fff), linear-gradient(135deg, #F29191, #F7ADAD);
+}
+
+.card-suhu2 .sensor-header h4 {
+  color: #000;
+}
+
+.card-suhu2 .sensor-value {
+  color: #000;
+}
+
+/* Suhu Dasar - Gradient Rose / Pink */
+.card-suhu3 {
+  background-color: transparent;
+  background-image: linear-gradient(#fff, #fff), linear-gradient(135deg, #287A74, #5003C0);
+}
+
+.card-suhu3 .sensor-header h4 {
+  color: #000;
+}
+
+.card-suhu3 .sensor-value {
+  color: #000;
+}
+
+/* Oksigen Terlarut (DO) - Gradient Biru Cyan */
+.card-do {
+  background-image: linear-gradient(#fff, #fff), linear-gradient(135deg, #D4621A, #D4621A);
+}
+
+.card-do .sensor-header h4 {
+  color: #000;
+}
+
+.card-do .sensor-value {
+  color: #000;
+}
+
+/* pH Air - Gradient Hijau Mint */
+.card-ph {
+  background-image: linear-gradient(#fff, #fff), linear-gradient(135deg, #4ade80, #16a34a);
+}
+
+.card-ph .sensor-header h4 {
+  color: #000;
+}
+
+.card-ph .sensor-value {
+  color: #000;
+}
+
+/* Kedalaman Air - Gradient Ungu */
+.card-kedalaman {
+  background-image: linear-gradient(#fff, #fff), linear-gradient(135deg, #c084fc, #9333ea);
+}
+
+.card-kedalaman .sensor-header h4 {
+  color: #000;
+}
+
+.card-kedalaman .sensor-value {
+  color: #000;
+}
+
+/* CLASS DINAMIS JIKA SENSOR ERROR / BERMASALAH (MERAH KEDIP) */
+.card-sensor-danger {
+  background-color: rgba(234, 118, 209, 0.959);
+  background-image: linear-gradient(#fff, #fff), linear-gradient(135deg, #fc0d0d, #ef4444) !important;
+  animation: pulse-red 2s infinite;
+}
+
+.card-sensor-danger .sensor-header h4,
+.card-sensor-danger .sensor-value {
+  color: #b91c1c !important;
+}
+
+@keyframes pulse-red {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
 }
 
 /* ==========================================
    CHART SECTION
    ========================================== */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
 .chart-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
   margin-bottom: 15px;
 }
 
+.chart-header h3 {
+  font-size: 1rem;
+  color: #0f172a;
+  white-space: nowrap;
+}
+
 .chart-header select {
-  padding: 6px 12px;
+  padding: 6px 10px;
   border-radius: 6px;
   border: 1px solid #cbd5e1;
+  font-size: 0.8rem;
   outline: none;
-  font-size: 0.85rem;
 }
 
 .chart-wrapper {
   position: relative;
-  height: 320px;
+  height: 260px;
   width: 100%;
+}
+
+.suhu-legend-container {
+  display: flex;
+  justify-content: center;
+  /* Mengubah dari flex-start ke center agar rata tengah di laptop */
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.legend-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* Indikator Permukaan - Warna Oranye */
+.legend-permukaan {
+  background-color: #fff;
+  color: #6FE6FC;
+  border: 1px solid #6FE6FC;
+}
+
+.legend-permukaan .legend-dot {
+  background-color: #6FE6FC;
+}
+
+/* Indikator Tengah - Warna Koral */
+.legend-tengah {
+  background-color: #fff;
+  color: #F7ADAD;
+  border: 1px solid #F7ADAD;
+}
+
+.legend-tengah .legend-dot {
+  background-color: #F7ADAD;
+}
+
+/* Indikator Dasar - Warna Rose/Pink */
+.legend-dasar {
+  background-color: #fff;
+  color: #5003C0;
+  border: 1px solid #5003C0;
+}
+
+.legend-dasar .legend-dot {
+  background-color: #5003C0;
 }
 
 /* ==========================================
@@ -340,7 +520,6 @@ tr:hover {
    RESPONSIVE LAYOUT UNTUK TAMPILAN HP
    ========================================== */
 @media (max-width: 768px) {
-  
   .header-container {
     flex-direction: column;
     align-items: center;
@@ -381,5 +560,33 @@ tr:hover {
 
   .overview-section {
     grid-template-columns: 1fr;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .chart-header select {
+    width: 100%;
+  }
+
+  .chart-wrapper {
+    height: 220px;
+  }
+
+  .suhu-legend-container {
+    justify-content: center;
+    /* Tetap rata tengah secara rapi di HP */
+    gap: 8px;
+  }
+
+  .legend-badge {
+    font-size: 0.7rem;
+    padding: 4px 8px;
   }
 }
