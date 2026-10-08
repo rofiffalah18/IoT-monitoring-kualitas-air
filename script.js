@@ -407,31 +407,20 @@ const logRowsPerPage = 10;
 let filteredLogData = [];
 
 // ==========================================
-// RENDER & PAGINASI TABEL LOG AKTIVITAS
+// RENDER TABEL LOG (OTOMATIS 1 MINGGU TERAKHIR & 10 BARIS/HALAMAN)
 // ==========================================
 function renderActivityHistory(data) {
   if (!data || data.length === 0) return;
 
-  // 1. Ambil nilai filter rentang waktu
-  const filterElem = document.getElementById("filter-log-time");
-  const filterVal = filterElem ? filterElem.value : "7d";
-
-  // 2. Filter data berdasarkan waktu (default: 7 hari / 1 minggu)
   const now = new Date();
+  
+  // 1. Kunci data HANYA untuk 1 minggu (7 hari) terakhir & urutkan dari yang terbaru
   filteredLogData = [...data].reverse().filter(item => {
-    if (filterVal === "all") return true;
-    
     const itemDate = parseCustomDate(item.timestamp);
-    if (filterVal === "today") {
-      return itemDate.toDateString() === now.toDateString();
-    }
-    if (filterVal === "7d") {
-      return (now - itemDate) <= (7 * 24 * 60 * 60 * 1000); // 7 Hari
-    }
-    return true;
+    return (now - itemDate) <= (7 * 24 * 60 * 60 * 1000); // Max 7 hari
   });
 
-  // 3. Tampilkan data log sesuai halaman aktif
+  // 2. Tampilkan halaman aktif
   displayLogPage(currentLogPage);
 }
 
@@ -444,18 +433,18 @@ function displayLogPage(page) {
   const totalRows = filteredLogData.length;
   const totalPages = Math.ceil(totalRows / logRowsPerPage) || 1;
 
-  // Pastikan nomor halaman tidak melampaui batas
+  // Jaga-jaga nomor halaman tidak melebihi batas
   if (page < 1) page = 1;
   if (page > totalPages) page = totalPages;
   currentLogPage = page;
 
-  // Tentukan indeks data yang akan ditampilkan (10 per halaman)
+  // Ambil tepat 10 baris sesuai halaman
   const startIndex = (page - 1) * logRowsPerPage;
   const endIndex = Math.min(startIndex + logRowsPerPage, totalRows);
   const pageData = filteredLogData.slice(startIndex, endIndex);
 
   if (pageData.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Tidak ada riwayat log pada rentang waktu ini.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">Tidak ada riwayat log dalam 1 minggu terakhir.</td></tr>`;
   } else {
     pageData.forEach(item => {
       const tr = document.createElement("tr");
@@ -471,7 +460,7 @@ function displayLogPage(page) {
     });
   }
 
-  // Update Teks Info Halaman & Status Tombol
+  // Update Teks Info Halaman & Tombol
   const pageInfo = document.getElementById("log-page-info");
   if (pageInfo) pageInfo.innerText = `Halaman ${currentLogPage} dari ${totalPages}`;
 
@@ -482,13 +471,8 @@ function displayLogPage(page) {
 }
 
 // ==========================================
-// KONTROL NAVIGASI HALAMAN & FILTER
+// NAVIGASI TOMBOL PREV & NEXT
 // ==========================================
-function changeLogFilter() {
-  currentLogPage = 1; // Reset ke halaman pertama saat filter diubah
-  renderActivityHistory(rawDataSensor);
-}
-
 function prevLogPage() {
   if (currentLogPage > 1) {
     displayLogPage(currentLogPage - 1);
