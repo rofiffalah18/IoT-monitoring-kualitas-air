@@ -427,23 +427,23 @@ function showEmptyState() {
 }
 
 // Tambahkan fungsi pengecekan koneksi ini di script.js
-function checkESPConnection(latestTimestampStr) {
-  const statusBadge = document.getElementById("esp-status-badge"); // Elemen badge status ESP di HTML
-  if (!statusBadge || !latestTimestampStr) return;
+function checkESPConnection(latestData) {
+  const statusBadge = document.getElementById("esp-status-badge");
+  if (!statusBadge || !latestData || !latestData.timestamp) return;
 
-  // Ubah string "dd/MM/yyyy, HH:mm:ss" jadi objek Date
-  const lastDataTime = parseCustomDate(latestTimestampStr);
   const now = new Date();
+  const lastDataTime = parseCustomDate(latestData.timestamp);
+  const diffInMinutes = Math.floor((now - lastDataTime) / (1000 * 60));
 
-  // Hitung selisih waktu dalam detik
-  const diffInSeconds = Math.floor((now - lastDataTime) / 1000);
+  // Tentukan batas toleransi secara otomatis:
+  // Jika data berupa [DUMMY], toleransi 2 menit. Jika data ASLI ESP32, toleransi 31 menit.
+  const isDummy = latestData.catatan && latestData.catatan.includes("[DUMMY]");
+  const maxTolerance = isDummy ? 2 : 31;
 
-  // Jika data terakhir dikirim kurang dari 3 menit (180 detik) yang lalu -> ONLINE
-  if (diffInSeconds <= 180) {
-    statusBadge.innerText = "ESP32 ONLINE";
+  if (diffInMinutes <= maxTolerance) {
+    statusBadge.innerText = isDummy ? "ESP32 ONLINE (DUMMY TES)" : "ESP32 ONLINE";
     statusBadge.className = "badge badge-success";
   } else {
-    // Jika lebih dari 3 menit tidak ada data masuk -> OFFLINE
     statusBadge.innerText = "ESP32 OFFLINE";
     statusBadge.className = "badge badge-danger";
   }
