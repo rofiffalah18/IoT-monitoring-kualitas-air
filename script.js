@@ -1,4 +1,4 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxkiOIG6Kmpce1v2LDC4BLFhLCkMYlbSzAz74yMJEpuYEKx9eTbLUuLSdpww4Js-tJ5kw/exec"; 
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPcQ6YPapGf37XNUF3TofDkfkWLkMM5ibjBDk301uX7SRv-J9l-ipdxPVhnD2An4XlfQ/exec"; 
 
 // Auto-refresh data tiap 10 detik
 const REFRESH_INTERVAL = 10000; 
@@ -22,14 +22,9 @@ document.addEventListener("DOMContentLoaded", () => {
 // ==========================================
 async function fetchData() {
   try {
-    // Pakai timestamp acak biar browser gak nge-cache error lama
-    const apiUrl = `${SCRIPT_URL}?action=read&t=${new Date().getTime()}`;
+    // Tambahkan redirect: "follow" agar tidak diblokir Google Apps Script
+    const response = await fetch(SCRIPT_URL, { redirect: "follow" });
     
-    const response = await fetch(apiUrl, {
-      method: "GET",
-      redirect: "follow"
-    });
-
     if (!response.ok) {
       throw new Error(`HTTP Error Status: ${response.status}`);
     }
@@ -40,7 +35,7 @@ async function fetchData() {
       rawDataSensor = result;
       const latestData = result[result.length - 1];
 
-      // Update UI
+      // Update UI Dashboard
       updateLastUpdateTime(latestData.timestamp);
       checkESP32Status(latestData);
       updateSensorCards(latestData);
@@ -48,11 +43,12 @@ async function fetchData() {
       updateChartData(result);
       renderActivityHistory(result);
     } else {
-      console.warn("Data kosong dari server.");
+      showEmptyState();
     }
   } catch (error) {
     console.error("Gagal mengambil data dari server:", error);
     
+    // Tampilan Status Error Koneksi
     const txtStatus = document.getElementById('txt-status');
     const statusContainer = document.getElementById('connection-status');
     if (txtStatus && statusContainer) {
@@ -151,29 +147,78 @@ function setElementText(id, text) {
 // ==========================================
 // 5. KALKULASI INDEKS KUALITAS AIR
 // ==========================================
+// ==========================================
+// KALKULASI INDEKS KUALITAS AIR & REKOMENDASI
+// ==========================================
 function calculateWaterQualityIndex(data) {
+  if (!data) return;
+
   let score = 100;
   
+  // Hitung Pengurangan Skor
   if (data.do < 4.0) score -= 30;
   if (data.ph < 5.5 || data.ph > 8.5) score -= 25;
   if (Math.abs(data.suhu1 - data.suhu3) >= 1.5) score -= 20;
 
-  const ikaElem = document.getElementById("val-ika");
-  const statusBadge = document.getElementById("status-badge");
+  score = Math.max(score, 0);
 
-  if (ikaElem) ikaElem.innerText = `${Math.max(score, 0)}%`;
+  // 1. Update Angka IKA
+  const ikaElem = document.getElementById("val-ika") || document.querySelector(".index-value");
+  if (ikaElem) ikaElem.innerText = score;
 
+  // 2. Update Status Teks IKA (BAIK / WASPADA / BAHAYA)
+  const statusBadge = document.getElementById("status-badge") || document.querySelector(".index-status");
   if (statusBadge) {
     if (score >= 80) {
       statusBadge.innerText = "SANGAT BAIK";
-      statusBadge.className = "badge badge-success";
+      statusBadge.className = "index-status badge-success";
     } else if (score >= 60) {
       statusBadge.innerText = "WASPADA";
-      statusBadge.className = "badge badge-warning";
+      statusBadge.className = "index-status badge-warning";
     } else {
       statusBadge.innerText = "BAHAYA";
-      statusBadge.className = "badge badge-danger";
+      statusBadge.className = "index-status badge-danger";
     }
+  }
+
+  // 3. Panggil Pembuat Pesan Peringatan & Rekomendasi
+  renderAlerts(data, score);
+}
+
+// ==========================================
+// TAMPILKAN PERINGATAN & REKOMENDASI SISTEM
+// ==========================================
+function renderAlerts(data, score) {
+  // Cari container peringatan di HTML
+  const container = document.getElementById("alert-container") || 
+                    document.getElementById("recommendation-box") || 
+                    document.querySelector(".alert-box") ||
+                    document.querySelector("[class*='peringatan']");
+
+  if (!container) return;
+
+  let alerts = [];
+
+  // Pengecekan Kondisi Sensor
+  if (data.do < 4.0) {
+    alerts.push("⚠️ <b>Oksigen Terlarut (DO) Rendah:</b> Tambahkan aerasi/kincir air segera.");
+  }
+  if (data.ph < 5.5) {
+    alerts.push("⚠️ <b>pH Air Terlalu Asam:</b> Lakukan pengapuran pada kolam.");
+  } else if (data.ph > 8.5) {
+    alerts.push("⚠️ <b>pH Air Terlalu Basa:</b> Lakukan pergantian air bertahap.");
+  }
+  
+  const bedaSuhu = Math.abs(data.suhu1 - data.suhu3);
+  if (bedaSuhu >= 1.5) {
+    alerts.push(`⚠️ <b>Stratifikasi Suhu (${bedaSuhu.toFixed(1)}°C):</b> Gunakan pompa sirkulasi air.`);
+  }
+
+  // Render Pesan ke HTML
+  if (alerts.length > 0) {
+    container.innerHTML = alerts.map(msg => `<div class="alert-item warning-item">${msg}</div>`).join("");
+  } else {
+    container.innerHTML = `<div class="alert-item success-item">✅ <b>Kondisi Air Normal:</b> Semua parameter kualitas air berada dalam batas aman.</div>`;
   }
 }
 

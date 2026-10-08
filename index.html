@@ -34,19 +34,18 @@
 
     <!-- RINGKASAN INDEKS KUALITAS AIR & ALERT UTAMA -->
     <section class="overview-section">
-      <div class="card index-card">
+      <!-- Bagian Indeks Kualitas Air -->
+      <div class="card">
         <h3>Indeks Kualitas Air</h3>
-        <div class="index-display">
-          <span id="val-indeks-kualitas">--</span>
-          <span class="index-scale">/ 100</span>
-        </div>
-        <span id="badge-status" class="badge">Memuat...</span>
+        <div class="index-value"><span id="val-ika">--</span> / 100</div>
+        <div id="status-badge" class="index-status">MEMUAT...</div>
       </div>
 
-      <div class="card alert-card">
+      <!-- Bagian Peringatan & Rekomendasi -->
+      <div class="card">
         <h3>⚠️ Peringatan & Rekomendasi Sistem</h3>
         <div id="alert-container">
-          <p class="alert-item info">Menunggu sinkronisasi data sensor...</p>
+          <div class="alert-item">Menunggu sinkronisasi data sensor...</div>
         </div>
       </div>
     </section>
