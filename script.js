@@ -1,7 +1,7 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPcQ6YPapGf37XNUF3TofDkfkWLkMM5ibjBDk301uX7SRv-J9l-ipdxPVhnD2An4XlfQ/exec"; 
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPcQ6YPapGf37XNUF3TofDkfkWLkMM5ibjBDk301uX7SRv-J9l-ipdxPVhnD2An4XlfQ/exec";
 
 // Auto-refresh data tiap 10 detik
-const REFRESH_INTERVAL = 10000; 
+const REFRESH_INTERVAL = 10000;
 
 let rawDataSensor = [];
 let chartSuhu, chartDO, chartPH, chartKedalaman;
@@ -12,7 +12,7 @@ let chartSuhu, chartDO, chartPH, chartKedalaman;
 document.addEventListener("DOMContentLoaded", () => {
   initCharts();
   fetchData();
-  
+
   // Pasang listener pada dropdown filter grafik
   setupFilterListeners();
 
@@ -36,19 +36,19 @@ function filterDataByTime(data, filterValue) {
   if (filterValue === "all") return data;
 
   const now = new Date();
-  
+
   return data.filter(item => {
     const itemDate = parseCustomDate(item.timestamp);
-    
+
     if (filterValue === "1h") {
       return (now - itemDate) <= (1 * 60 * 60 * 1000); // 1 Jam terakhir
-    } 
+    }
     if (filterValue === "today") {
       return itemDate.toDateString() === now.toDateString(); // Hari Ini
-    } 
+    }
     if (filterValue === "7d") {
       return (now - itemDate) <= (7 * 24 * 60 * 60 * 1000); // 7 Hari
-    } 
+    }
     if (filterValue === "30d") {
       return (now - itemDate) <= (30 * 24 * 60 * 60 * 1000); // 30 Hari
     }
@@ -63,7 +63,7 @@ async function fetchData() {
   try {
     // Tambahkan redirect: "follow" agar tidak diblokir Google Apps Script
     const response = await fetch(SCRIPT_URL, { redirect: "follow" });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP Error Status: ${response.status}`);
     }
@@ -78,7 +78,14 @@ async function fetchData() {
       updateLastUpdateTime(latestData.timestamp);
       checkESP32Status(latestData);
       updateSensorCards(latestData);
-      calculateWaterQualityIndex(latestData);
+      const ika = calculateWaterQualityIndex(latestData);
+      const valIka = document.getElementById("val-ika");
+      const statusBadge = document.getElementById("status-badge");
+      if (valIka) valIka.innerText = ika.score;
+      if (statusBadge) {
+        statusBadge.innerText = ika.status;
+        statusBadge.style.backgroundColor = ika.color;
+      }
       updateChartData(result);
       renderActivityHistory(result);
     } else {
@@ -86,7 +93,7 @@ async function fetchData() {
     }
   } catch (error) {
     console.error("Gagal mengambil data dari server:", error);
-    
+
     // Tampilan Status Error Koneksi
     const txtStatus = document.getElementById('txt-status');
     const statusContainer = document.getElementById('connection-status');
@@ -102,21 +109,21 @@ async function fetchData() {
 // ==========================================
 function parseCustomDate(str) {
   if (!str) return new Date();
-  
+
   // Hapus tanda petik satu jika terbawa dari spreadsheet
   const cleanStr = str.replace("'", "").trim();
-  
+
   if (cleanStr.includes("/")) {
     const parts = cleanStr.split(", ");
     const dateParts = parts[0].split("/");
     const timeParts = parts[1] ? parts[1].split(":") : [0, 0, 0];
-    
+
     return new Date(
-      parseInt(dateParts[2]), 
-      parseInt(dateParts[1]) - 1, 
-      parseInt(dateParts[0]), 
-      parseInt(timeParts[0]), 
-      parseInt(timeParts[1]), 
+      parseInt(dateParts[2]),
+      parseInt(dateParts[1]) - 1,
+      parseInt(dateParts[0]),
+      parseInt(timeParts[0]),
+      parseInt(timeParts[1]),
       parseInt(timeParts[2]) || 0
     );
   }
@@ -166,7 +173,7 @@ function updateSensorCards(data) {
 
   // 2. Evaluasi Kondisi Masing-Masing Sensor
   const bedaSuhu = Math.abs(data.suhu1 - data.suhu3);
-  
+
   // Suhu dianggap bahaya jika nilainya 0 atau beda strukturnya tinggi
   const isSuhu1Danger = data.suhu1 === 0 || bedaSuhu >= 1.5;
   const isSuhu2Danger = data.suhu2 === 0;
@@ -178,7 +185,7 @@ function updateSensorCards(data) {
   // Status Teks
   const statusSuhu = isSuhu1Danger ? (data.suhu1 === 0 ? "Bahaya (0°C)" : "Waspada (Beda Tinggi)") : "Normal";
   const statusDO = isDODanger ? "Bahaya (Rendah)" : "Normal";
-  
+
   let statusPH = "Normal";
   if (data.ph < 5.5) statusPH = "Bahaya (Asam)";
   else if (data.ph > 8.5) statusPH = "Bahaya (Basa)";
@@ -443,7 +450,7 @@ function updateChartData(data) {
 function updateSingleChart(type) {
   const selectElem = document.getElementById(`filter-${type}`);
   const filterVal = selectElem ? selectElem.value : "today";
-  
+
   // Filter data sesuai opsi dropdown
   const filteredData = filterDataByTime(rawDataSensor, filterVal);
 
@@ -452,24 +459,24 @@ function updateSingleChart(type) {
     if (!item.timestamp) return "";
     const cleanStr = item.timestamp.replace("'", "").trim(); // "dd/MM/yyyy, HH:mm:ss"
     const parts = cleanStr.split(", ");
-    
+
     const dateParts = parts[0] ? parts[0].split("/") : ["01", "01", "2026"]; // [dd, MM, yyyy]
     const timeParts = parts[1] ? parts[1].split(":") : ["00", "00", "00"]; // [HH, mm, ss]
 
     if (filterVal === "1h") {
       // 1. Pilih Jam -> Munculin MENIT saja (misal: "15'")
       return `${timeParts[1]}'`;
-    } 
+    }
     else if (filterVal === "today") {
       // 2. Pilih Hari Ini -> Munculin JAM saja tanpa menit detik (misal: "14:00")
       return `${timeParts[0]}:00`;
-    } 
+    }
     else if (filterVal === "7d") {
       // 3. Pilih Minggu -> Munculin NAMA HARI saja (misal: "Senin", "Selasa")
       const itemDate = parseCustomDate(cleanStr);
       const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
       return namaHari[itemDate.getDay()];
-    } 
+    }
     else if (filterVal === "30d") {
       // 4. Pilih Bulan -> Munculin TANGGAL dan BULAN saja (misal: "08/10")
       return `${dateParts[0]}/${dateParts[1]}`;
@@ -514,7 +521,7 @@ function renderActivityHistory(data) {
   if (!data || data.length === 0) return;
 
   const now = new Date();
-  
+
   // 1. Kunci data HANYA untuk 1 minggu (7 hari) terakhir & urutkan dari yang terbaru
   filteredLogData = [...data].reverse().filter(item => {
     const itemDate = parseCustomDate(item.timestamp);
