@@ -135,7 +135,7 @@
         <div class="card chart-card">
           <div class="chart-header">
             <h3>🌡️ Grafik Suhu Air (°C)</h3>
-            <select id="filter-suhu" onchange="updateChartByParam('suhu')">
+            <select id="filter-suhu" onchange="updateSingleChart('suhu')">
               <option value="1h">1 Jam Terakhir</option>
               <option value="today" selected>Hari Ini</option>
               <option value="7d">Minggu Ini (7 Hari)</option>
@@ -163,7 +163,7 @@
         <div class="card chart-card">
           <div class="chart-header">
             <h3>🫧 Grafik DO (ppm)</h3>
-            <select id="filter-do" onchange="updateChartByParam('do')">
+            <select id="filter-do" onchange="updateSingleChart('do')">
               <option value="1h">1 Jam Terakhir</option>
               <option value="today" selected>Hari Ini</option>
               <option value="7d">Minggu Ini (7 Hari)</option>
@@ -179,7 +179,7 @@
         <div class="card chart-card">
           <div class="chart-header">
             <h3>🧪 Grafik pH Air</h3>
-            <select id="filter-ph" onchange="updateChartByParam('ph')">
+            <select id="filter-ph" onchange="updateSingleChart('ph')">
               <option value="1h">1 Jam Terakhir</option>
               <option value="today" selected>Hari Ini</option>
               <option value="7d">Minggu Ini (7 Hari)</option>
@@ -195,7 +195,7 @@
         <div class="card chart-card">
           <div class="chart-header">
             <h3>📏 Grafik Kedalaman Air (m)</h3>
-            <select id="filter-kedalaman" onchange="updateChartByParam('kedalaman')">
+            <select id="filter-kedalaman" onchange="updateSingleChart('kedalaman')">
               <option value="1h">1 Jam Terakhir</option>
               <option value="today" selected>Hari Ini</option>
               <option value="7d">Minggu Ini (7 Hari)</option>
