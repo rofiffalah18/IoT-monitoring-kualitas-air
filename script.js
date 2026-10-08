@@ -22,9 +22,14 @@ document.addEventListener("DOMContentLoaded", () => {
 // ==========================================
 async function fetchData() {
   try {
-    // Tambahkan redirect: "follow" agar tidak diblokir Google Apps Script
-    const response = await fetch(SCRIPT_URL, { redirect: "follow" });
+    // Pakai timestamp acak biar browser gak nge-cache error lama
+    const apiUrl = `${SCRIPT_URL}?action=read&t=${new Date().getTime()}`;
     
+    const response = await fetch(apiUrl, {
+      method: "GET",
+      redirect: "follow"
+    });
+
     if (!response.ok) {
       throw new Error(`HTTP Error Status: ${response.status}`);
     }
@@ -35,7 +40,7 @@ async function fetchData() {
       rawDataSensor = result;
       const latestData = result[result.length - 1];
 
-      // Update UI Dashboard
+      // Update UI
       updateLastUpdateTime(latestData.timestamp);
       checkESP32Status(latestData);
       updateSensorCards(latestData);
@@ -43,12 +48,11 @@ async function fetchData() {
       updateChartData(result);
       renderActivityHistory(result);
     } else {
-      showEmptyState();
+      console.warn("Data kosong dari server.");
     }
   } catch (error) {
     console.error("Gagal mengambil data dari server:", error);
     
-    // Tampilan Status Error Koneksi
     const txtStatus = document.getElementById('txt-status');
     const statusContainer = document.getElementById('connection-status');
     if (txtStatus && statusContainer) {
