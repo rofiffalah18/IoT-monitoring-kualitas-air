@@ -487,6 +487,7 @@ body {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
   margin-top: 10px;
 }
 
@@ -592,33 +593,47 @@ tr:hover {
     font-size: 0.7rem;
     padding: 4px 8px;
   }
-  
-  /* Ratakan kontrol paginasi agar tidak berdesakan */
-  .log-controls {
-    flex-direction: column;
-    align-items: flex-end !important;
-    gap: 8px;
+
+ .card, 
+  .chart-card, 
+  .log-card {
+    padding: 12px 8px !important;
+    margin-bottom: 12px !important;
   }
 
-  /* Kecilkan ukuran teks & padding tabel di layar HP */
-  .log-table, 
+  /* Atur tinggi & lebar kanvas Grafik */
+  .chart-container, 
+  canvas {
+    width: 100% !important;
+    max-height: 220px !important; /* Mencegah grafik terlalu tinggi di HP */
+  }
+
+  /* Rapikan Kontrol Paginasi Log */
+  .log-controls {
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  .pagination-controls {
+    font-size: 11px;
+  }
+
+  .btn-page {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+  }
+
+  /* Rapikan Tabel Log */
+  table.log-table, 
   table {
-    font-size: 12px; /* Ukuran font lebih ringkas */
-    white-space: nowrap; /* Mencegah baris teks terlipat berantakan */
+    font-size: 11px !important;
+    white-space: nowrap; /* Mencegah baris terlipat jelek */
   }
 
   table th, 
   table td {
-    padding: 8px 10px !important; /* Padding lebih ramping */
-  }
-
-  /* Rapikan tombol Prev/Next */
-  .btn-page {
-    padding: 4px 8px;
-    font-size: 12px;
-  }
-
-  #log-page-info {
-    font-size: 12px;
+    padding: 6px 8px !important;
   }
 }
