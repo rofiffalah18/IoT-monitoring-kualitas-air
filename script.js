@@ -177,12 +177,11 @@ function updateSensorCards(data) {
   setElementText("val-kedalaman", data.kedalaman);
 
   // 2. Evaluasi Kondisi Masing-Masing Sensor
-  const bedaSuhu = Math.abs(data.suhu1 - data.suhu3);
   
   // Suhu dianggap bahaya jika nilainya 0 atau beda strukturnya tinggi
-  const isSuhu1Danger = data.suhu1 === 0 || bedaSuhu >= 1.5;
-  const isSuhu2Danger = data.suhu2 === 0;
-  const isSuhu3Danger = data.suhu3 === 0 || bedaSuhu >= 1.5;
+  const isSuhu1Danger = data.suhu1 === 0 || data.suhu1 < 25.0 || data.suhu1 > 32.0;
+  const isSuhu2Danger = data.suhu2 === 0 || data.suhu2 < 25.0 || data.suhu2 > 32.0;
+  const isSuhu3Danger = data.suhu3 === 0 || data.suhu3 < 25.0 || data.suhu3 > 32.0;
   const isDODanger = data.do < 4.0; // Nilai 0 pasti masuk ke sini
   const isPHDanger = data.ph < 5.5 || data.ph > 8.5; // Nilai 0 pasti masuk ke sini
   const isKedalamanDanger = data.kedalaman < 0.8; // Nilai 0 pasti masuk ke sini
@@ -251,7 +250,7 @@ function calculateWaterQualityIndex(data) {
 
   // B. Evaluasi Suhu 2 (Tengah)
   if (data.suhu2 === 0 || data.suhu2 < 25.0 || data.suhu2 > 32.0) {
-    totalPenalty += 10;
+    totalPenalty += 15;
   }
 
   // C. Evaluasi Suhu 3 (Dasar)
@@ -259,17 +258,11 @@ function calculateWaterQualityIndex(data) {
     totalPenalty += 15;
   }
 
-  // D. Evaluasi Stratifikasi Suhu (|Suhu 1 - Suhu 3|)
-  const bedaSuhu = Math.abs(data.suhu1 - data.suhu3);
-  if (bedaSuhu >= 1.5) {
-    totalPenalty += 15;
-  }
-
   // E. Evaluasi Oksigen Terlarut (DO)
   if (data.do === 0 || data.do < 4.0) {
     totalPenalty += 25; // Pengurangan besar jika DO rendah/0
   } else if (data.do < 5.0) {
-    totalPenalty += 10;
+    totalPenalty += 15;
   }
 
   // F. Evaluasi pH Air
@@ -281,7 +274,7 @@ function calculateWaterQualityIndex(data) {
 
   // G. Evaluasi Kedalaman
   if (data.kedalaman === 0 || data.kedalaman < 0.8) {
-    totalPenalty += 10;
+    totalPenalty += 15;
   }
 
   // Hitung Skor Akhir (Maksimal 100, Minimal 0)
@@ -307,7 +300,7 @@ function calculateWaterQualityIndex(data) {
 // 2. REKOMENDASI SISTEM (MENAMPILKAN SEMUA PERINGATAN)
 // ==========================================
 function updateSystemRecommendation(data) {
-  const container = document.getElementById("recommendation-list") || document.getElementById("system-warning");
+  const container = document.getElementById("recommendation-list") || document.getElementById("system-warning") || document.getElementById("alert-container");;
   if (!container) return;
 
   if (!data) {
@@ -338,23 +331,17 @@ function updateSystemRecommendation(data) {
     warnings.push(`⚠️ <b>Suhu Dasar Anomali (${data.suhu3}°C):</b> Di luar rentang optimal 25-32°C.`);
   }
 
-  // D. Peringatan Stratifikasi Suhu
-  const bedaSuhu = Math.abs(data.suhu1 - data.suhu3);
-  if (bedaSuhu >= 1.5) {
-    warnings.push(`⚠️ <b>Stratifikasi Suhu Tinggi (Δ ${bedaSuhu.toFixed(1)}°C):</b> Perbedaan suhu permukaan & dasar terlalu besar, nyalakan kincir air/aerator.`);
-  }
-
-  // E. Peringatan DO
+  // D. Peringatan DO
   if (data.do === 0 || data.do < 4.0) {
     warnings.push(`🚨 <b>Oksigen Terlarut Kritis (${data.do} ppm):</b> Potensi kematian ikan! Segera tambah suplai oksigen/aerasi.`);
   }
 
-  // F. Peringatan pH
+  // E. Peringatan pH
   if (data.ph === 0 || data.ph < 5.5 || data.ph > 8.5) {
     warnings.push(`🚨 <b>pH Air Ekstrem (${data.ph}):</b> Kualitas air buruk. Lakukan pengapuran atau pergantian air.`);
   }
 
-  // G. Peringatan Kedalaman
+  // F. Peringatan Kedalaman
   if (data.kedalaman === 0 || data.kedalaman < 0.8) {
     warnings.push(`⚠️ <b>Kedalaman Air Dangkal (${data.kedalaman} m):</b> Tambahkan pasokan air kolam/tambak.`);
   }
