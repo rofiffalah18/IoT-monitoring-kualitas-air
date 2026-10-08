@@ -267,9 +267,9 @@ function calculateWaterQualityIndex(data) {
 
   // F. Evaluasi pH Air
   if (data.ph === 0 || data.ph < 5.5 || data.ph > 8.5) {
-    totalPenalty += 20;
+    totalPenalty += 25;
   } else if (data.ph < 6.5 || data.ph > 7.8) {
-    totalPenalty += 10;
+    totalPenalty += 15;
   }
 
   // G. Evaluasi Kedalaman
