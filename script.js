@@ -1,14 +1,5 @@
-// ==========================================
-// KONFIGURASI UTAMA & SAKELAR MODE
-// ==========================================
-// Copy URL Web App Google Apps Script kamu di sini:
-const SCRIPT_URL = "ISI_DENGAN_URL_GOOGLE_APPS_SCRIPT_KAMU";
-
-// SAKELAR MODE TESTING:
-// - Set false untuk Operasional Real-Time 24 Jam (Jadwal :00 & :30, toleransi 31 menit)
-// - Set true untuk Pengetesan Cepat (Toleransi 1.5 menit / 90 detik)
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwVMXtRzgmnlgWF3-zHaUWbZNhUpa4kUZMSZKVedLo0X2jeReBgU2I1hCwj4lzRkVK47Q/exec";
 const IS_TESTING_MODE = false;
-
 const FETCH_INTERVAL_MS = 10000; // Web menarik data dari Google Sheets tiap 10 detik
 const rowsPerPage = 10;
 let waterChart = null;
@@ -338,12 +329,43 @@ function createSingleChart(canvasId, labelText, lineColor, fillColor) {
   });
 }
 
-function updateChartData(dataArray) {
-  rawGlobalData = dataArray;
-  updateChartByParam('suhu');
-  updateChartByParam('do');
-  updateChartByParam('ph');
-  updateChartByParam('kedalaman');
+function updateLatestCards(latest) {
+  if (!latest) return;
+
+  // 1. Update Nilai Teks Sensor
+  setElementText("val-suhu1", `${latest.suhu1} °C`);
+  setElementText("val-suhu2", `${latest.suhu2} °C`);
+  setElementText("val-suhu3", `${latest.suhu3} °C`);
+  setElementText("val-do", `${latest.do} ppm`);
+  setElementText("val-ph", latest.ph);
+  setElementText("val-kedalaman", `${latest.kedalaman} m`);
+  setElementText("last-update-time", latest.timestamp);
+
+  // 2. CEK PERINGATAN & UBAH WARNA CARD JADI MERAH
+  // Card DO (Merah jika DO < 4.0)
+  toggleCardDanger("card-do", latest.do < 4.0);
+
+  // Card pH (Merah jika pH < 5.5 atau pH > 8.5)
+  toggleCardDanger("card-ph", latest.ph < 5.5 || latest.ph > 8.5);
+
+  // Card Suhu (Merah jika ada beda suhu/stratifikasi >= 1.5 °C)
+  const bedaSuhu = Math.abs(latest.suhu1 - latest.suhu3);
+  toggleCardDanger("card-suhu", bedaSuhu >= 1.5);
+
+  // 3. Kalkulasi Indeks Kualitas Air
+  calculateWaterQualityIndex(latest);
+}
+
+// Fungsi Helper untuk Menambah/Melepas Kelas Merah
+function toggleCardDanger(cardId, isDanger) {
+  const cardElem = document.getElementById(cardId);
+  if (cardElem) {
+    if (isDanger) {
+      cardElem.classList.add("card-danger");
+    } else {
+      cardElem.classList.remove("card-danger");
+    }
+  }
 }
 
 // Logika Filter Per Tabel
