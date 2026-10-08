@@ -207,9 +207,9 @@ function toggleCardDangerByClass(className, isDanger) {
   const cardElem = document.querySelector(`.${className}`);
   if (cardElem) {
     if (isDanger) {
-      cardElem.classList.add("card-danger");
+      cardElem.classList.add("card-sensor-danger");
     } else {
-      cardElem.classList.remove("card-danger");
+      cardElem.classList.remove("card-sensor-danger");
     }
   }
 }
