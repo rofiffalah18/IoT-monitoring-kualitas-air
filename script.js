@@ -1,4 +1,4 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwVMXtRzgmnlgWF3-zHaUWbZNhUpa4kUZMSZKVedLo0X2jeReBgU2I1hCwj4lzRkVK47Q/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxDdzsGUH8gAx1AnLbAotSOZdUr0OcHFb9G5ZReoC5FvD8Te2PaScDZ5Owyqu7xnuotxA/exec";
 const IS_TESTING_MODE = false;
 const FETCH_INTERVAL_MS = 10000; // Web menarik data dari Google Sheets tiap 10 detik
 const rowsPerPage = 10;
@@ -24,7 +24,22 @@ async function fetchData() {
     if (result && result.length > 0) {
       const latestData = result[result.length - 1];
 
-      // Update UI Dashboard
+async function fetchData() {
+  try {
+    // 1. Ambil data dengan penanganan redirect dari Google
+    const response = await fetch(SCRIPT_URL, { redirect: "follow" });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP Status: ${response.status}`);
+    }
+
+    const result = await response.json();
+
+    // 2. Validasi apakah data yang diterima berupa Array dan ada isinya
+    if (Array.isArray(result) && result.length > 0) {
+      const latestData = result[result.length - 1];
+
+      // Update UI Dashboard sesuai dengan fungsi bawaan kamu
       updateLastUpdateTime(latestData.timestamp);
       checkESP32Status(latestData.timestamp);
       updateSensorCards(latestData);
@@ -37,6 +52,8 @@ async function fetchData() {
     }
   } catch (error) {
     console.error("Gagal mengambil data dari server:", error);
+    
+    // Tampilan Error Koneksi
     const txtStatus = document.getElementById('txt-status');
     const statusContainer = document.getElementById('connection-status');
     if (txtStatus && statusContainer) {
