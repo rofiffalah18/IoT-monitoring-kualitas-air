@@ -376,43 +376,6 @@ function updateSystemRecommendation(data) {
 }
 
 // ==========================================
-// TAMPILKAN PERINGATAN & REKOMENDASI SISTEM
-// ==========================================
-function renderAlerts(data, score) {
-  // Cari container peringatan di HTML
-  const container = document.getElementById("alert-container") || 
-                    document.getElementById("recommendation-box") || 
-                    document.querySelector(".alert-box") ||
-                    document.querySelector("[class*='peringatan']");
-
-  if (!container) return;
-
-  let alerts = [];
-
-  // Pengecekan Kondisi Sensor
-  if (data.do < 4.0) {
-    alerts.push("⚠️ <b>Oksigen Terlarut (DO) Rendah:</b> Tambahkan aerasi/kincir air segera.");
-  }
-  if (data.ph < 5.5) {
-    alerts.push("⚠️ <b>pH Air Terlalu Asam:</b> Lakukan pengapuran pada kolam.");
-  } else if (data.ph > 8.5) {
-    alerts.push("⚠️ <b>pH Air Terlalu Basa:</b> Lakukan pergantian air bertahap.");
-  }
-  
-  const bedaSuhu = Math.abs(data.suhu1 - data.suhu3);
-  if (bedaSuhu >= 1.5) {
-    alerts.push(`⚠️ <b>Stratifikasi Suhu (${bedaSuhu.toFixed(1)}°C):</b> Gunakan pompa sirkulasi air.`);
-  }
-
-  // Render Pesan ke HTML
-  if (alerts.length > 0) {
-    container.innerHTML = alerts.map(msg => `<div class="alert-item warning-item">${msg}</div>`).join("");
-  } else {
-    container.innerHTML = `<div class="alert-item success-item">✅ <b>Kondisi Air Normal:</b> Semua parameter kualitas air berada dalam batas aman.</div>`;
-  }
-}
-
-// ==========================================
 // 6. INIT & UPDATE CHART.JS
 // ==========================================
 function initCharts() {
