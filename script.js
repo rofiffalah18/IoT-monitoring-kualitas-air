@@ -361,20 +361,38 @@ function updateSingleChart(type) {
   const selectElem = document.getElementById(`filter-${type}`);
   const filterVal = selectElem ? selectElem.value : "today";
   
-  // Filter data sesuai opsi dropdown yang dipilih
+  // Filter data sesuai opsi dropdown
   const filteredData = filterDataByTime(rawDataSensor, filterVal);
 
-  // Buat label sumbu X dinamis (Menampilkan Jam jika filter singkat, Tanggal jika > 1 hari)
+  // Ubah tampilan label sumbu X sesuai aturan filter
   const labels = filteredData.map(item => {
     if (!item.timestamp) return "";
-    const cleanStr = item.timestamp.replace("'", "").trim();
+    const cleanStr = item.timestamp.replace("'", "").trim(); // "dd/MM/yyyy, HH:mm:ss"
     const parts = cleanStr.split(", ");
     
-    if (filterVal === "1h" || filterVal === "today") {
-      return parts[1] || parts[0]; // Tampilkan HH:mm:ss
-    } else {
-      return parts[0]; // Tampilkan dd/MM/yyyy
+    const dateParts = parts[0] ? parts[0].split("/") : ["01", "01", "2026"]; // [dd, MM, yyyy]
+    const timeParts = parts[1] ? parts[1].split(":") : ["00", "00", "00"]; // [HH, mm, ss]
+
+    if (filterVal === "1h") {
+      // 1. Pilih Jam -> Munculin MENIT saja (misal: "15'")
+      return `${timeParts[1]}'`;
+    } 
+    else if (filterVal === "today") {
+      // 2. Pilih Hari Ini -> Munculin JAM saja tanpa menit detik (misal: "14:00")
+      return `${timeParts[0]}:00`;
+    } 
+    else if (filterVal === "7d") {
+      // 3. Pilih Minggu -> Munculin NAMA HARI saja (misal: "Senin", "Selasa")
+      const itemDate = parseCustomDate(cleanStr);
+      const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+      return namaHari[itemDate.getDay()];
+    } 
+    else if (filterVal === "30d") {
+      // 4. Pilih Bulan -> Munculin TANGGAL dan BULAN saja (misal: "08/10")
+      return `${dateParts[0]}/${dateParts[1]}`;
     }
+
+    return parts[1] || parts[0];
   });
 
   // Update grafik spesifik
