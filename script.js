@@ -166,37 +166,51 @@ function updateSensorCards(data) {
 
   // 2. Evaluasi Kondisi Masing-Masing Sensor
   const bedaSuhu = Math.abs(data.suhu1 - data.suhu3);
-  const statusSuhu = bedaSuhu >= 1.5 ? "Waspada (Beda Tinggi)" : "Normal";
   
-  const statusDO = data.do < 4.0 ? "Bahaya (Rendah)" : "Normal";
+  // Suhu dianggap bahaya jika nilainya 0 atau beda strukturnya tinggi
+  const isSuhu1Danger = data.suhu1 === 0 || bedaSuhu >= 1.5;
+  const isSuhu2Danger = data.suhu2 === 0;
+  const isSuhu3Danger = data.suhu3 === 0 || bedaSuhu >= 1.5;
+  const isDODanger = data.do < 4.0; // Nilai 0 pasti masuk ke sini
+  const isPHDanger = data.ph < 5.5 || data.ph > 8.5; // Nilai 0 pasti masuk ke sini
+  const isKedalamanDanger = data.kedalaman < 0.8; // Nilai 0 pasti masuk ke sini
+
+  // Status Teks
+  const statusSuhu = isSuhu1Danger ? (data.suhu1 === 0 ? "Bahaya (0°C)" : "Waspada (Beda Tinggi)") : "Normal";
+  const statusDO = isDODanger ? "Bahaya (Rendah)" : "Normal";
   
   let statusPH = "Normal";
   if (data.ph < 5.5) statusPH = "Bahaya (Asam)";
   else if (data.ph > 8.5) statusPH = "Bahaya (Basa)";
 
-  let statusKedalaman = "Normal";
-  if (data.kedalaman < 0.8) statusKedalaman = "Waspada (Dangkal)";
+  let statusKedalaman = isKedalamanDanger ? "Waspada (Dangkal)" : "Normal";
 
-  // 3. Update Teks Kondisi sesuai ID di HTML kamu (status-suhu1, status-do, dll)
+  // 3. Update Teks Kondisi di HTML
   setConditionText("status-suhu1", statusSuhu);
-  setConditionText("status-suhu2", "Normal");
+  setConditionText("status-suhu2", data.suhu2 === 0 ? "Bahaya (0°C)" : "Normal");
   setConditionText("status-suhu3", statusSuhu);
   setConditionText("status-do", statusDO);
   setConditionText("status-ph", statusPH);
   setConditionText("status-kedalaman", statusKedalaman);
 
-  // 4. Efek Border Merah (Jika bahaya)
-  toggleCardDangerByClass("card-do", data.do < 4.0);
-  toggleCardDangerByClass("card-ph", data.ph < 5.5 || data.ph > 8.5);
-  toggleCardDangerByClass("card-suhu1", bedaSuhu >= 1.5);
-  toggleCardDangerByClass("card-suhu3", bedaSuhu >= 1.5);
+  // 4. Efek Border Merah (Toggle Class "card-danger")
+  toggleCardDangerByClass("card-suhu1", isSuhu1Danger);
+  toggleCardDangerByClass("card-suhu2", isSuhu2Danger);
+  toggleCardDangerByClass("card-suhu3", isSuhu3Danger);
+  toggleCardDangerByClass("card-do", isDODanger);
+  toggleCardDangerByClass("card-ph", isPHDanger);
+  toggleCardDangerByClass("card-kedalaman", isKedalamanDanger);
 }
 
-// Helper untuk mengisi teks kondisi
-function setConditionText(id, statusText) {
-  const elem = document.getElementById(id);
-  if (elem) {
-    elem.innerText = `Kondisi: ${statusText}`;
+// Helper untuk toggle warna merah
+function toggleCardDangerByClass(className, isDanger) {
+  const cardElem = document.querySelector(`.${className}`);
+  if (cardElem) {
+    if (isDanger) {
+      cardElem.classList.add("card-danger");
+    } else {
+      cardElem.classList.remove("card-danger");
+    }
   }
 }
 
