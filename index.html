@@ -212,18 +212,8 @@
 
     <!-- TABEL LOG RIWAYAT AKTIVITAS & KONEKSI -->
     <section class="history-section">
-      <!-- Kontrol Filter & Paginasi Log -->
       <div class="log-controls"
-        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <div>
-          <label for="filter-log-time"><b>Rentang Waktu:</b> </label>
-          <select id="filter-log-time" onchange="changeLogFilter()">
-            <option value="7d" selected>1 Minggu Terakhir</option>
-            <option value="today">Hari Ini</option>
-            <option value="all">Semua Riwayat</option>
-          </select>
-        </div>
-
+        style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 12px;">
         <div class="pagination-controls" style="display: flex; gap: 8px; align-items: center;">
           <button id="btn-prev-log" onclick="prevLogPage()" class="btn-page">◀ Prev</button>
           <span id="log-page-info">Halaman 1 dari 1</span>
@@ -242,7 +232,7 @@
           </tr>
         </thead>
         <tbody id="tbody-history">
-          <!-- Data log diisi oleh JavaScript -->
+          <!-- Data log diisi otomatis oleh JavaScript -->
         </tbody>
       </table>
     </section>
