@@ -342,41 +342,50 @@ const ctxSuhu = document.getElementById("chartSuhu");
   }
 }
 
+function updateChartData(data) {
+  if (!data || data.length === 0) return;
+  rawDataSensor = data;
+
+  updateSingleChart("suhu");
+  updateSingleChart("do");
+  updateSingleChart("ph");
+  updateSingleChart("kedalaman");
+}
+
 function updateSingleChart(type) {
   const selectElem = document.getElementById(`filter-${type}`);
   const filterVal = selectElem ? selectElem.value : "today";
   
   const filteredData = filterDataByTime(rawDataSensor, filterVal);
 
-  // 1. Format label sumbu X agar menampilkan Menit & Detik jika jamnya sama
   const labels = filteredData.map(item => {
     if (!item.timestamp) return "";
     const cleanStr = item.timestamp.replace("'", "").trim();
     const parts = cleanStr.split(", ");
-    const timeParts = parts[1] ? parts[1].split(":") : ["00", "00", "00"]; // [HH, mm, ss]
+    
+    const dateParts = parts[0] ? parts[0].split("/") : ["01", "01", "2026"];
+    const timeParts = parts[1] ? parts[1].split(":") : ["00", "00", "00"];
 
     if (filterVal === "1h") {
-      return `${timeParts[1]}:${timeParts[2]}`; // mm:ss
+      return `${timeParts[1]}'`;
     } 
     else if (filterVal === "today") {
-      return `${timeParts[0]}:${timeParts[1]}`; // HH:mm
+      return `${timeParts[0]}:${timeParts[1]}`;
     } 
     else if (filterVal === "7d") {
       const itemDate = parseCustomDate(cleanStr);
       const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-      return `${namaHari[itemDate.getDay()]} ${timeParts[0]}:${timeParts[1]}`;
+      return namaHari[itemDate.getDay()];
     } 
     else if (filterVal === "30d") {
-      const dateParts = parts[0] ? parts[0].split("/") : ["01", "01"];
       return `${dateParts[0]}/${dateParts[1]}`;
     }
 
     return parts[1] || parts[0];
   });
 
-  // 2. Kunci warna garis agar SAMA PERSIS dengan badge legend
   if (type === "suhu" && chartSuhu) {
-    chartSuhu.data.labels = labels;
+  chartSuhu.data.labels = labels;
     
     // Dataset 0: Permukaan (#6FE6FC)
     chartSuhu.data.datasets[0].data = filteredData.map(item => item.suhu1);
@@ -392,7 +401,6 @@ function updateSingleChart(type) {
     chartSuhu.data.datasets[2].data = filteredData.map(item => item.suhu3);
     chartSuhu.data.datasets[2].borderColor = "#5003C0";
     chartSuhu.data.datasets[2].backgroundColor = "#5003C0";
-
     chartSuhu.update();
   } else if (type === "do" && chartDO) {
     chartDO.data.labels = labels;
