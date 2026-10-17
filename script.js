@@ -298,16 +298,16 @@ function initCharts() {
     scales: { x: { grid: { display: false } }, y: { beginAtZero: false } }
   };
 
-  const ctxSuhu = document.getElementById("chartSuhu");
+const ctxSuhu = document.getElementById("chartSuhu");
   if (ctxSuhu) {
     chartSuhu = new Chart(ctxSuhu, {
       type: "line",
       data: {
         labels: [],
         datasets: [
-          { label: "Permukaan", data: [], borderColor: "#6FE6FC", tension: 0.3 },
-          { label: "Tengah", data: [], borderColor: "#F7ADAD", tension: 0.3 },
-          { label: "Dasar", data: [], borderColor: "#5003C0", tension: 0.3 }
+          { label: "Permukaan", data: [], borderColor: "#6FE6FC", backgroundColor: "#6FE6FC", tension: 0.3 },
+          { label: "Tengah",     data: [], borderColor: "#F7ADAD", backgroundColor: "#F7ADAD", tension: 0.3 },
+          { label: "Dasar",      data: [], borderColor: "#5003C0", backgroundColor: "#5003C0", tension: 0.3 }
         ]
       },
       options: commonOptions
