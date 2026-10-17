@@ -54,4 +54,11 @@ Tabel master berikut merangkum seluruh pemetaan *pinout*, jalur komunikasi data,
 | | DE & RE | **GPIO 15 ESP32** *(Jumper)* | Digital Output | Kontrol Direction Transmit/Receive RS485 |
 | **Modul Sensor pH** *(3-Pin)* | VCC / V | Rel VCC 5V Utama | **5V DC** | Catu daya modul penguat (Op-Amp) pH |
 | | GND / G | **Common GND** | **0V (GND)** | Ground Modul pH |
-| | Signal / A / Po | **Pin A0 ADS1115** | Analog Voltage (mV) | Sinyal Analog pH ke ADC ADS11
+| | Signal / A / Po | **Pin A0 ADS1115** | Analog Voltage (mV) | Sinyal Analog pH ke ADC ADS1115 |
+| **Modul ADS1115** *(ADC 16-Bit)* | **VDD** | Rel VCC 5V Utama | **5V DC** | Daya utama modul ADC 16-Bit |
+| | **GND** | **Common GND** | **0V (GND)** | Ground utama ADS1115 |
+| | **ADDR** | **Common GND** | **0V (GND)** | Dihubungkan ke GND untuk mengunci alamat I2C di `0x48` |
+| | **SDA** | **GPIO 21 ESP32** | I2C Data | Bus Data I2C Hardware ESP32 |
+| | **SCL** | **GPIO 22 ESP32** | I2C Clock | Bus Clock I2C Hardware ESP32 |
+| | **A0 (AIN0)** | Pin **Signal / Po** Modul pH | Analog Voltage ($mV$) | Membaca sinyal analog dari modul sensor pH |
+| | **A1, A2, A3, ALRT**| *Kosong / Unused* | - | Pin Cadangan & Interrupt (Tidak dipakai) |
