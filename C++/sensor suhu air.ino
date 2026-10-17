@@ -1,68 +1,62 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-// --- PIN DATA DS18B20 (GPIO 16) ---
-#define ONE_WIRE_BUS 16
+#define ONE_WIRE_BUS 4
 
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
-// ============================================================
-// MASUKKAN ALAMAT HEX HASIL SCANNER ANDA DI SINI
-// ============================================================
-DeviceAddress sensor1Addr = { 0x28, 0xFF, 0x64, 0x1E, 0x82, 0x17, 0x04, 0x56 }; // Ganti dengan Alamat Sensor 1
-DeviceAddress sensor2Addr = { 0x28, 0xFF, 0x33, 0x21, 0x82, 0x17, 0x05, 0x89 }; // Ganti dengan Alamat Sensor 2
-DeviceAddress sensor3Addr = { 0x28, 0xFF, 0x12, 0x10, 0x82, 0x17, 0x01, 0x12 }; // Ganti dengan Alamat Sensor 3
+// ============================================================================
+// ISI ALAMAT ROM FISIK MASING-MASING SENSOR (Hasil Scan Serial Monitor)
+// ============================================================================
+// Ganti kode HEX di bawah ini dengan alamat asli sensor kamu!
+DeviceAddress sensorSurface = { 0x28, 0xFF, 0x64, 0x1E, 0x82, 0x17, 0x04, 0x5D };
+DeviceAddress sensorMiddle  = { 0x28, 0xFF, 0x31, 0x1E, 0x82, 0x17, 0x05, 0xA1 };
+DeviceAddress sensorBottom  = { 0x28, 0xFF, 0x90, 0x1E, 0x82, 0x17, 0x06, 0x22 };
 
-// Variabel penampung nilai suhu (°C)
-float suhu1 = 0.0;
-float suhu2 = 0.0;
-float suhu3 = 0.0;
-
-// ============================================================
-// VOID SUHU (Membaca berdasarkan Alamat Unik HEX)
-// ============================================================
-void suhu() {
-  sensors.requestTemperatures(); // Minta semua sensor mengukur suhu
-
-  // Baca suhu langsung dari alamat spesifiknya
-  suhu1 = sensors.getTempC(sensor1Addr);
-  suhu2 = sensors.getTempC(sensor2Addr);
-  suhu3 = sensors.getTempC(sensor3Addr);
-
-  // Tampilkan Hasil ke Serial Monitor
-  Serial.print("[SUHU 1] ");
-  if (suhu1 == DEVICE_DISCONNECTED_C) Serial.print("Error/Terputus"); else { Serial.print(suhu1, 1); Serial.print(" °C"); }
-
-  Serial.print(" | [SUHU 2] ");
-  if (suhu2 == DEVICE_DISCONNECTED_C) Serial.print("Error/Terputus"); else { Serial.print(suhu2, 1); Serial.print(" °C"); }
-
-  Serial.print(" | [SUHU 3] ");
-  if (suhu3 == DEVICE_DISCONNECTED_C) Serial.print("Error/Terputus"); else { Serial.print(suhu3, 1); Serial.print(" °C"); }
-
-  Serial.println();
+void bacaDanCetakSuhu(const char* label, DeviceAddress address) {
+  float suhu = sensors.getTempC(address);
+  
+  Serial.print(label);
+  Serial.print(" : ");
+  
+  if (suhu == DEVICE_DISCONNECTED_C) {
+    Serial.println("ERROR / TERPUTUS (-127°C)");
+  } else {
+    Serial.print(suhu);
+    Serial.println(" °C");
+  }
 }
 
-// ============================================================
-// SETUP & LOOP
-// ============================================================
 void setup() {
   Serial.begin(115200);
+  delay(1000);
+  
+  Serial.println("================================================");
+  Serial.println("   MONITORING SUHU DENGAN ROM ADDRESS LOCKED    ");
+  Serial.println("================================================");
 
-  // Inisialisasi Sensor Suhu
   sensors.begin();
+  
+  // Set resolusi pembacaan (9-12 bit). 10-bit atau 11-bit lebih cepat dibanding 12-bit
+  sensors.setResolution(sensorSurface, 11);
+  sensors.setResolution(sensorMiddle, 11);
+  sensors.setResolution(sensorBottom, 11);
 
-  // Opsional: Atur resolusi pembacaan (9, 10, 11, atau 12 Bit)
-  // 12-Bit = Akurasi paling tinggi (0.0625°C)
-  sensors.setResolution(sensor1Addr, 12);
-  sensors.setResolution(sensor2Addr, 12);
-  sensors.setResolution(sensor3Addr, 12);
-
-  Serial.println("\n--- Pengujian Pembacaan Suhu via Alamat HEX (GPIO 16) ---");
+  Serial.println("Perangkat berhasil diinisialisasi secara terkunci!\n");
 }
 
 void loop() {
-  suhu(); // Panggil fungsi void suhu
+  sensors.requestTemperatures();
 
-  delay(2000); // Pembacaan ulang tiap 2 detik
+  Serial.println("--- HASIL PEMBACAAN SUHU ---");
+  
+  // Pembacaan dipanggil murni berdasarkan Alamat ROM Permanen
+  bacaDanCetakSuhu("Suhu 1 (Surface)", sensorSurface);
+  bacaDanCetakSuhu("Suhu 2 (Middle) ", sensorMiddle);
+  bacaDanCetakSuhu("Suhu 3 (Bottom) ", sensorBottom);
+
+  Serial.println("----------------------------\n");
+
+  delay(2000);
 }

@@ -1,50 +1,78 @@
-// --- PIN SENSOR AJ-SR04M ---
-#define TRIG_PIN 18     // GPIO 18 ESP32 -> Ke TRIG AJ-SR04M
-#define ECHO_PIN 19     // GPIO 19 ESP32 -> Ke ECHO AJ-SR04M
+#include <Arduino.h>
 
-// ============================================================
-// SINGLE VOID: BACA & TAMPILKAN JARAK SENSOR AJ-SR04M
-// ============================================================
-void ultrasonik() {
-  // 1. Kirim sinyal trigger 10us
-  digitalWrite(TRIG_PIN, LOW);
-  delayMicroseconds(2);
-  digitalWrite(TRIG_PIN, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(TRIG_PIN, LOW);
+#define TRIG_PIN 5
+#define ECHO_PIN 18
 
-  // 2. Baca durasi pantulan echo (timeout 30ms ~ maks 5 meter)
-  long duration = pulseIn(ECHO_PIN, HIGH, 30000);
+// Kalibrasi Tinggi Maksimal Wadah/Kolam dari Sensor ke Dasar (dalam cm)
+const float TINGGI_MAX_KOLAM = 200.0;
 
-  // 3. Hitung jarak (cm) & Tampilkan ke Serial Monitor
-  if (duration == 0) {
-    Serial.println("[AJ-SR04M] Error: Objek terlalu dekat (<20cm), di luar jangkauan (>5m), atau tidak ada pantulan!");
+// Function helper untuk membaca jarak rata-rata dari sensor ultrasonik
+float hitungJarakRataRata(int jumlahSampel) {
+  float totalJarak = 0.0;
+  int sampelValid = 0;
+
+  for (int i = 0; i < jumlahSampel; i++) {
+    digitalWrite(TRIG_PIN, LOW);
+    delayMicroseconds(2);
+    digitalWrite(TRIG_PIN, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIG_PIN, LOW);
+
+    long durasi = pulseIn(ECHO_PIN, HIGH, 30000);
+    float jarak = (durasi * 0.034) / 2.0;
+
+    if (jarak >= 2.0 && jarak <= 400.0) {
+      totalJarak += jarak;
+      sampelValid++;
+    }
+    delay(30);
+  }
+
+  if (sampelValid > 0) {
+    return totalJarak / sampelValid;
   } else {
-    float jarak = (duration * 0.034) / 2.0; // Rumus kecepatan suara (0.034 cm/us)
-    
-    Serial.print("[AJ-SR04M] Jarak Terdeteksi: ");
-    Serial.print(jarak, 1);
+    return -1.0; // Return -1 jika sensor timeout / error
+  }
+}
+
+// Function modular untuk kalkulasi dan cetak kedalaman air
+void bacaDanCetakKedalaman(const char* label, float tinggiKolam) {
+  float jarakKeAir = hitungJarakRataRata(5);
+
+  Serial.println(label);
+
+  if (jarakKeAir < 0) {
+    Serial.println("⚠️ Status: ERROR / TIMEOUT (Out of Range)");
+  } else {
+    float kedalamanAir = tinggiKolam - jarakKeAir;
+    if (kedalamanAir < 0) kedalamanAir = 0;
+
+    Serial.print("Jarak Sensor ke Air : ");
+    Serial.print(jarakKeAir, 1);
+    Serial.println(" cm");
+
+    Serial.print("Kedalaman Air Kolam  : ");
+    Serial.print(kedalamanAir, 1);
     Serial.println(" cm");
   }
 }
 
-// ============================================================
-// SETUP & LOOP
-// ============================================================
 void setup() {
   Serial.begin(115200);
+  delay(1000);
 
-  // Konfigurasi Mode Pin
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
-  digitalWrite(TRIG_PIN, LOW);
 
-  Serial.println("\n--- Pengujian Sensor Ultrasonik AJ-SR04M ---");
+  Serial.println("================================================");
+  Serial.println("  UJI SENSOR ULTRASONIK KEDALAMAN AIR (AJ-SR04M)");
+  Serial.println("================================================");
 }
 
 void loop() {
-  // Panggil 1 void ini saja
-  ultrasonik();
+  // Pemanggilan fungsi modular tunggal
+  bacaDanCetakKedalaman("--- BACAAN SENSOR KEDALAMAN AIR ---", TINGGI_MAX_KOLAM);
 
-  delay(2000); // Pembacaan ulang tiap 2 detik
+  Serial.println("----------------------------------\n");
+  delay(2000);
 }

@@ -1,71 +1,52 @@
-// --- PIN SENSOR PH AIR ANALOG ---
-#define PH_PIN 35  // GPIO 35 ESP32 (ADC1 - Khusus Input Analog)
+#include <Arduino.h>
 
-// --- KALIBRASI PH ---
-// Ubah nilai offset ini jika pembacaan belum pas dengan cairan kalibrasi (pH 4 / pH 7)
-float phOffset = 0.0; 
+#define PIN_PH_ANALOG 34
 
-// Variabel Global Data pH
-float nilaipH = 0.0;
+const float TEGANGAN_PH_7 = 1500.0;
+const float PH_PER_MV     = 0.004;
 
-
-// ============================================================
-// SINGLE VOID: BACA & TAMPILKAN SENSOR PH
-// ============================================================
-void ph() {
-  int totalADC = 0;
-  int jumlahSampel = 10;
-
-  // 1. Ambil 10 sampel pembacaan ADC agar data lebih stabil
-  for (int i = 0; i < jumlahSampel; i++) {
-    totalADC += analogRead(PH_PIN);
-    delay(10);
-  }
-
-  // 2. Hitung rata-rata ADC (ESP32 ADC = 0 hingga 4095)
-  float rataADC = (float)totalADC / jumlahSampel;
-
-  // 3. Konversi ADC ke Tegangan (Volt) -> Asumsi Vref ESP32 = 3.3V
-  float tegangan = rataADC * (3.3 / 4095.0);
-
-  // 4. Rumus Konversi Tegangan ke Nilai pH
-  // Standar modul pH: 2.5V ≈ pH 7
-  nilaipH = 3.5 * tegangan + phOffset;
-
-  // 5. Tampilkan ke Serial Monitor
-  Serial.print("[pH AIR] ADC: ");
-  Serial.print(rataADC, 0);
-  Serial.print(" | Tegangan: ");
-  Serial.print(tegangan, 2);
-  Serial.print(" V | Nilai pH: ");
-  Serial.print(nilaipH, 2);
+// Void khusus untuk membaca dan mencetak pH dari pin analog bawaan ESP32
+void bacaDanCetakPHDirect(const char* label, uint8_t pin) {
+  int adcRaw = analogRead(pin);
+  float teganganMV = (adcRaw / 4095.0) * 3300.0;
   
-  // Indikator sederhana kondisi air
-  if (nilaipH < 6.5) {
-    Serial.println(" (Asam)");
-  } else if (nilaipH > 8.5) {
-    Serial.println(" (Basa)");
+  float nilaiPH = 7.0 + ((TEGANGAN_PH_7 - teganganMV) * PH_PER_MV);
+  if (nilaiPH < 0.0) nilaiPH = 0.0;
+  if (nilaiPH > 14.0) nilaiPH = 14.0;
+
+  Serial.println(label);
+  Serial.print("ADC Raw ESP32 : ");
+  Serial.println(adcRaw);
+
+  Serial.print("Tegangan      : ");
+  Serial.print(teganganMV, 1);
+  Serial.println(" mV");
+
+  Serial.print("Nilai pH      : ");
+  Serial.print(nilaiPH, 2);
+
+  if (nilaiPH < 6.5) {
+    Serial.println(" (ASAM ⚠️)");
+  } else if (nilaiPH > 8.5) {
+    Serial.println(" (BASA ⚠️)");
   } else {
-    Serial.println(" (Netral/Normal)");
+    Serial.println(" (IDEAL / NETRAL ✅)");
   }
 }
 
-
-// ============================================================
-// SETUP & LOOP
-// ============================================================
 void setup() {
   Serial.begin(115200);
+  delay(1000);
 
-  // Set resolusi ADC ESP32 ke 12-bit (0-4095)
   analogReadResolution(12);
-
-  Serial.println("\n--- Pengujian Sensor pH Air Analog (GPIO 35) ---");
+  
+  Serial.println("================================================");
+  Serial.println("   UJI SENSOR pH DIRECT (PIN ANALOG GPIO 34)   ");
+  Serial.println("================================================");
 }
 
 void loop() {
-  // Cukup panggil 1 void ini saja
-  ph();
-
-  delay(2000); // Pembacaan ulang tiap 2 detik
+  bacaDanCetakPHDirect("--- BACA pH DIRECT GPIO 34 ---", PIN_PH_ANALOG);
+  Serial.println("------------------------------\n");
+  delay(1000);
 }
