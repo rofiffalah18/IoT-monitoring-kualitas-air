@@ -1,4 +1,4 @@
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPcQ6YPapGf37XNUF3TofDkfkWLkMM5ibjBDk301uX7SRv-J9l-ipdxPVhnD2An4XlfQ/exec"; 
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPcQ6YPapGf37XNUF3TofDkfkWLkMM5ibjBDk301uX7SRv-J9l-ipdxPVhnD2An4XlfQ/exec";
 
 const REFRESH_INTERVAL = 10000; // Auto-refresh data tiap 10 detik
 
@@ -32,19 +32,19 @@ function filterDataByTime(data, filterValue) {
   if (filterValue === "all") return data;
 
   const now = new Date();
-  
+
   return data.filter(item => {
     const itemDate = parseCustomDate(item.timestamp);
-    
+
     if (filterValue === "1h") {
       return (now - itemDate) <= (1 * 60 * 60 * 1000);
-    } 
+    }
     if (filterValue === "today") {
       return itemDate.toDateString() === now.toDateString();
-    } 
+    }
     if (filterValue === "7d") {
       return (now - itemDate) <= (7 * 24 * 60 * 60 * 1000);
-    } 
+    }
     if (filterValue === "30d") {
       return (now - itemDate) <= (30 * 24 * 60 * 60 * 1000);
     }
@@ -58,7 +58,7 @@ function filterDataByTime(data, filterValue) {
 async function fetchData() {
   try {
     const response = await fetch(SCRIPT_URL, { redirect: "follow" });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP Error Status: ${response.status}`);
     }
@@ -94,7 +94,7 @@ async function fetchData() {
     }
   } catch (error) {
     console.error("Gagal mengambil data dari server:", error);
-    
+
     const txtStatus = document.getElementById('txt-status');
     const statusContainer = document.getElementById('connection-status');
     if (txtStatus && statusContainer) {
@@ -109,20 +109,20 @@ async function fetchData() {
 // ==========================================
 function parseCustomDate(str) {
   if (!str) return new Date();
-  
+
   const cleanStr = str.replace("'", "").trim();
-  
+
   if (cleanStr.includes("/")) {
     const parts = cleanStr.split(", ");
     const dateParts = parts[0].split("/");
     const timeParts = parts[1] ? parts[1].split(":") : [0, 0, 0];
-    
+
     return new Date(
-      parseInt(dateParts[2]), 
-      parseInt(dateParts[1]) - 1, 
-      parseInt(dateParts[0]), 
-      parseInt(timeParts[0]), 
-      parseInt(timeParts[1]), 
+      parseInt(dateParts[2]),
+      parseInt(dateParts[1]) - 1,
+      parseInt(dateParts[0]),
+      parseInt(timeParts[0]),
+      parseInt(timeParts[1]),
       parseInt(timeParts[2]) || 0
     );
   }
@@ -171,8 +171,8 @@ function updateSensorCards(data) {
   const isSuhu1Danger = data.suhu1 === -127 || data.suhu1 < 25.0 || data.suhu1 > 32.0;
   const isSuhu2Danger = data.suhu2 === -127 || data.suhu2 < 25.0 || data.suhu2 > 32.0;
   const isSuhu3Danger = data.suhu3 === -127 || data.suhu3 < 25.0 || data.suhu3 > 32.0;
-  const isDODanger    = data.do === -1 || data.do < 3.0;
-  const isPHDanger    = data.ph === -1 || data.ph < 5.5 || data.ph > 8.5;
+  const isDODanger = data.do === -1 || data.do < 3.0;
+  const isPHDanger = data.ph === -1 || data.ph < 5.5 || data.ph > 8.5;
   const isKedalamanDanger = data.kedalaman === -1 || data.kedalaman < 80.0; // < 80 cm
 
   setConditionText("status-suhu1", isSuhu1Danger ? "Bahaya / Anomali" : "Normal");
@@ -298,7 +298,7 @@ function initCharts() {
     scales: { x: { grid: { display: false } }, y: { beginAtZero: false } }
   };
 
-const ctxSuhu = document.getElementById("chartSuhu");
+  const ctxSuhu = document.getElementById("chartSuhu");
   if (ctxSuhu) {
     chartSuhu = new Chart(ctxSuhu, {
       type: "line",
@@ -306,8 +306,8 @@ const ctxSuhu = document.getElementById("chartSuhu");
         labels: [],
         datasets: [
           { label: "Permukaan", data: [], borderColor: "#6FE6FC", backgroundColor: "#6FE6FC", tension: 0.3 },
-          { label: "Tengah",     data: [], borderColor: "#F7ADAD", backgroundColor: "#F7ADAD", tension: 0.3 },
-          { label: "Dasar",      data: [], borderColor: "#5003C0", backgroundColor: "#5003C0", tension: 0.3 }
+          { label: "Tengah", data: [], borderColor: "#F7ADAD", backgroundColor: "#F7ADAD", tension: 0.3 },
+          { label: "Dasar", data: [], borderColor: "#5003C0", backgroundColor: "#5003C0", tension: 0.3 }
         ]
       },
       options: commonOptions
@@ -355,28 +355,28 @@ function updateChartData(data) {
 function updateSingleChart(type) {
   const selectElem = document.getElementById(`filter-${type}`);
   const filterVal = selectElem ? selectElem.value : "today";
-  
+
   const filteredData = filterDataByTime(rawDataSensor, filterVal);
 
   const labels = filteredData.map(item => {
     if (!item.timestamp) return "";
     const cleanStr = item.timestamp.replace("'", "").trim();
     const parts = cleanStr.split(", ");
-    
+
     const dateParts = parts[0] ? parts[0].split("/") : ["01", "01", "2026"];
     const timeParts = parts[1] ? parts[1].split(":") : ["00", "00", "00"];
 
     if (filterVal === "1h") {
       return `${timeParts[1]}'`;
-    } 
+    }
     else if (filterVal === "today") {
       return `${timeParts[0]}:${timeParts[1]}`;
-    } 
+    }
     else if (filterVal === "7d") {
       const itemDate = parseCustomDate(cleanStr);
       const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
       return namaHari[itemDate.getDay()];
-    } 
+    }
     else if (filterVal === "30d") {
       return `${dateParts[0]}/${dateParts[1]}`;
     }
@@ -385,8 +385,8 @@ function updateSingleChart(type) {
   });
 
   if (type === "suhu" && chartSuhu) {
-  chartSuhu.data.labels = labels;
-    
+    chartSuhu.data.labels = labels;
+
     // Dataset 0: Permukaan (#6FE6FC)
     chartSuhu.data.datasets[0].data = filteredData.map(item => item.suhu1);
     chartSuhu.data.datasets[0].borderColor = "#6FE6FC";
@@ -428,7 +428,7 @@ function renderActivityHistory(data) {
   if (!data || data.length === 0) return;
 
   const now = new Date();
-  
+
   filteredLogData = [...data].reverse().filter(item => {
     const itemDate = parseCustomDate(item.timestamp);
     return (now - itemDate) <= (7 * 24 * 60 * 60 * 1000);
@@ -494,61 +494,63 @@ function showEmptyState() {
 }
 
 function downloadCSV() {
-      const btn = document.getElementById('btnExport');
-      btn.innerText = "⏳ Memproses Data...";
-      btn.disabled = true;
+  const btn = document.getElementById('btnExport');
+  btn.innerText = "⏳ Memproses Data...";
+  btn.disabled = true;
 
-      // Panggil fungsi Google Apps Script
-      google.script.run
-        .withSuccessHandler(function(data) {
-          if (!data || data.length === 0) {
-            alert("Tidak ada data ditemukan dalam 1 bulan terakhir!");
-            resetButton();
-            return;
+  console.log("Memulai pemanggilan google.script.run...");
+
+  google.script.run
+    .withSuccessHandler(function (data) {
+      console.log("Data berhasil diterima dari Google Apps Script:", data);
+
+      if (!data || data.length === 0) {
+        alert("Peringatan: Data kosong atau tidak ada data dalam 1 bulan terakhir!");
+        resetButton();
+        return;
+      }
+
+      const headers = Object.keys(data[0]);
+      let csvContent = headers.join(",") + "\n";
+
+      data.forEach(row => {
+        let values = headers.map(header => {
+          let val = row[header] === null || row[header] === undefined ? "" : row[header];
+          val = val.toString().replace(/"/g, '""');
+          if (val.includes(",") || val.includes("\n")) {
+            val = `"${val}"`;
           }
+          return val;
+        });
+        csvContent += values.join(",") + "\n";
+      });
 
-          // Format struktur CSV
-          const headers = Object.keys(data[0]);
-          let csvContent = headers.join(",") + "\n";
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
 
-          data.forEach(row => {
-            let values = headers.map(header => {
-              let val = row[header] === null || row[header] === undefined ? "" : row[header];
-              val = val.toString().replace(/"/g, '""');
-              if (val.includes(",") || val.includes("\n")) {
-                val = `"${val}"`;
-              }
-              return val;
-            });
-            csvContent += values.join(",") + "\n";
-          });
+      const now = new Date();
+      const monthYear = now.toISOString().slice(0, 7);
 
-          // Pemicu download otomatis melalui elemen anchor buatan
-          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          
-          const now = new Date();
-          const monthYear = now.toISOString().slice(0, 7);
-          
-          link.setAttribute("href", url);
-          link.setAttribute("download", `Data_WaterMonitoring_${monthYear}.csv`);
-          
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          
-          resetButton();
-        })
-        .withFailureHandler(function(err) {
-          alert("Gagal mengunduh: " + err.message);
-          resetButton();
-        })
-        .getWaterDataOneMonth();
-    }
+      link.setAttribute("href", url);
+      link.setAttribute("download", `Data_WaterMonitoring_${monthYear}.csv`);
 
-    function resetButton() {
-      const btn = document.getElementById('btnExport');
-      btn.innerText = "📥 Download Data (1 Bulan)";
-      btn.disabled = false;
-    }
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      resetButton();
+    })
+    .withFailureHandler(function (err) {
+      console.error("Gagal dari Apps Script:", err);
+      alert("Gagal mengunduh: " + err.message);
+      resetButton();
+    })
+    .getWaterDataOneMonth();
+}
+
+function resetButton() {
+  const btn = document.getElementById('btnExport');
+  btn.innerText = "📥 Download Data (1 Bulan)";
+  btn.disabled = false;
+}
