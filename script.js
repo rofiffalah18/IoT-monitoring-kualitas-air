@@ -498,10 +498,19 @@ async function downloadCSV() {
   btn.innerText = "⏳ Memproses Data...";
   btn.disabled = true;
 
+  // 1. Buat AbortController untuk membatasi waktu tunggu (Timeout)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000); // 20.000 ms = 20 Detik
+
   try {
-    // Mengambil data via Fetch API
-    const response = await fetch(`${SCRIPT_URL}?action=downloadCSV`);
+    // 2. Kirim permintaan fetch dengan signal dari controller
+    const response = await fetch(`${SCRIPT_URL}?action=downloadCSV`, {
+      signal: controller.signal
+    });
     
+    // Batalkan timer timeout jika respons server sudah diterima
+    clearTimeout(timeoutId);
+
     if (!response.ok) {
       throw new Error("Gagal terhubung ke server Google Apps Script.");
     }
@@ -514,7 +523,7 @@ async function downloadCSV() {
       return;
     }
 
-    // Process ke format CSV
+    // 3. Konversi ke Format CSV
     const headers = Object.keys(data[0]);
     let csvContent = headers.join(",") + "\n";
 
@@ -530,7 +539,7 @@ async function downloadCSV() {
       csvContent += values.join(",") + "\n";
     });
 
-    // Pemicu Download File
+    // 4. Pemicu Unduh File CSV
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -546,9 +555,18 @@ async function downloadCSV() {
     document.body.removeChild(link);
 
   } catch (err) {
+    clearTimeout(timeoutId); // Bersihkan timer jika terjadi error
+    
     console.error("Error download CSV:", err);
-    alert("Gagal mengunduh: " + err.message);
+
+    // Deteksi jika error disebabkan oleh Timeout 20 detik
+    if (err.name === 'AbortError') {
+      alert("⚠️ Waktu tunggu habis! Server Google Apps Script tidak merespons dalam 20 detik. Silakan coba lagi.");
+    } else {
+      alert("Gagal mengunduh data: " + err.message);
+    }
   } finally {
+    // Dipanggil dalam kondisi apapun (berhasil, error, atau timeout)
     resetButton();
   }
 }
