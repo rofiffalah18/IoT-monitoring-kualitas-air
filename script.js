@@ -493,64 +493,68 @@ function showEmptyState() {
   console.warn("Data kosong dari server.");
 }
 
-function downloadCSV() {
+async function downloadCSV() {
   const btn = document.getElementById('btnExport');
   btn.innerText = "⏳ Memproses Data...";
   btn.disabled = true;
 
-  console.log("Memulai pemanggilan google.script.run...");
+  try {
+    // Mengambil data via Fetch API
+    const response = await fetch(`${SCRIPT_URL}?action=downloadCSV`);
+    
+    if (!response.ok) {
+      throw new Error("Gagal terhubung ke server Google Apps Script.");
+    }
 
-  google.script.run
-    .withSuccessHandler(function (data) {
-      console.log("Data berhasil diterima dari Google Apps Script:", data);
+    const data = await response.json();
 
-      if (!data || data.length === 0) {
-        alert("Peringatan: Data kosong atau tidak ada data dalam 1 bulan terakhir!");
-        resetButton();
-        return;
-      }
+    if (!data || data.length === 0) {
+      alert("Tidak ada data ditemukan dalam 1 bulan terakhir!");
+      resetButton();
+      return;
+    }
 
-      const headers = Object.keys(data[0]);
-      let csvContent = headers.join(",") + "\n";
+    // Process ke format CSV
+    const headers = Object.keys(data[0]);
+    let csvContent = headers.join(",") + "\n";
 
-      data.forEach(row => {
-        let values = headers.map(header => {
-          let val = row[header] === null || row[header] === undefined ? "" : row[header];
-          val = val.toString().replace(/"/g, '""');
-          if (val.includes(",") || val.includes("\n")) {
-            val = `"${val}"`;
-          }
-          return val;
-        });
-        csvContent += values.join(",") + "\n";
+    data.forEach(row => {
+      let values = headers.map(header => {
+        let val = row[header] === null || row[header] === undefined ? "" : row[header];
+        val = val.toString().replace(/"/g, '""');
+        if (val.includes(",") || val.includes("\n")) {
+          val = `"${val}"`;
+        }
+        return val;
       });
+      csvContent += values.join(",") + "\n";
+    });
 
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
+    // Pemicu Download File
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    
+    const now = new Date();
+    const monthYear = now.toISOString().slice(0, 7);
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Data_WaterMonitoring_${monthYear}.csv`);
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
-      const now = new Date();
-      const monthYear = now.toISOString().slice(0, 7);
-
-      link.setAttribute("href", url);
-      link.setAttribute("download", `Data_WaterMonitoring_${monthYear}.csv`);
-
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      resetButton();
-    })
-    .withFailureHandler(function (err) {
-      console.error("Gagal dari Apps Script:", err);
-      alert("Gagal mengunduh: " + err.message);
-      resetButton();
-    })
-    .getWaterDataOneMonth();
+  } catch (err) {
+    console.error("Error download CSV:", err);
+    alert("Gagal mengunduh: " + err.message);
+  } finally {
+    resetButton();
+  }
 }
 
 function resetButton() {
   const btn = document.getElementById('btnExport');
-  btn.innerText = "📥 Download Data (1 Bulan)";
+  btn.innerText = "📥 Download CSV (1 Bulan)";
   btn.disabled = false;
 }
