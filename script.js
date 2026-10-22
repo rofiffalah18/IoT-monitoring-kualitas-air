@@ -492,3 +492,63 @@ function nextLogPage() {
 function showEmptyState() {
   console.warn("Data kosong dari server.");
 }
+
+function downloadCSV() {
+      const btn = document.getElementById('btnExport');
+      btn.innerText = "⏳ Memproses Data...";
+      btn.disabled = true;
+
+      // Panggil fungsi Google Apps Script
+      google.script.run
+        .withSuccessHandler(function(data) {
+          if (!data || data.length === 0) {
+            alert("Tidak ada data ditemukan dalam 1 bulan terakhir!");
+            resetButton();
+            return;
+          }
+
+          // Format struktur CSV
+          const headers = Object.keys(data[0]);
+          let csvContent = headers.join(",") + "\n";
+
+          data.forEach(row => {
+            let values = headers.map(header => {
+              let val = row[header] === null || row[header] === undefined ? "" : row[header];
+              val = val.toString().replace(/"/g, '""');
+              if (val.includes(",") || val.includes("\n")) {
+                val = `"${val}"`;
+              }
+              return val;
+            });
+            csvContent += values.join(",") + "\n";
+          });
+
+          // Pemicu download otomatis melalui elemen anchor buatan
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          
+          const now = new Date();
+          const monthYear = now.toISOString().slice(0, 7);
+          
+          link.setAttribute("href", url);
+          link.setAttribute("download", `Data_WaterMonitoring_${monthYear}.csv`);
+          
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          
+          resetButton();
+        })
+        .withFailureHandler(function(err) {
+          alert("Gagal mengunduh: " + err.message);
+          resetButton();
+        })
+        .getWaterDataOneMonth();
+    }
+
+    function resetButton() {
+      const btn = document.getElementById('btnExport');
+      btn.innerText = "📥 Download Data (1 Bulan)";
+      btn.disabled = false;
+    }

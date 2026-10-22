@@ -5,7 +5,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Monitoring Kualitas Air Telaga Inspirasi</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>">
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>">
   <!-- Chart.js untuk visualisasi grafik -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="style.css">
@@ -22,11 +23,17 @@
       </div>
       <!-- Indikator Koneksi ESP32 (Heartbeat) -->
       <div class="header-status">
-        <span id="connection-status" class="status-pill offline">
-          <span class="status-dot"></span>
-          <span id="txt-status">Memeriksa Koneksi...</span>
-        </span>
-        <small id="last-update-time">Update Terakhir: -</small>
+        <div class="status-info">
+          <span id="connection-status" class="status-pill offline">
+            <span class="status-dot"></span>
+            <span id="txt-status">Memeriksa Koneksi...</span>
+          </span>
+          <small id="last-update-time">Update Terakhir: -</small>
+        </div>
+        
+        <button id="btnExport" class="btn-download" onclick="downloadCSV()">
+          📥 Download CSV
+        </button>
       </div>
     </div>
   </header>
@@ -223,21 +230,21 @@
       </div>
 
       <!-- Tabel Log -->
-<div class="table-responsive">
-  <table class="log-table">
-    <thead>
-      <tr>
-        <th>Waktu Transmisi</th>
-        <th>Jenis Aktivitas</th>
-        <th>Status Log</th>
-        <th>Keterangan / Pesan Masalah</th>
-      </tr>
-    </thead>
-    <tbody id="tbody-history">
-      <!-- Diisi oleh script.js -->
-    </tbody>
-  </table>
-</div>
+      <div class="table-responsive">
+        <table class="log-table">
+          <thead>
+            <tr>
+              <th>Waktu Transmisi</th>
+              <th>Jenis Aktivitas</th>
+              <th>Status Log</th>
+              <th>Keterangan / Pesan Masalah</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-history">
+            <!-- Diisi oleh script.js -->
+          </tbody>
+        </table>
+      </div>
     </section>
 
   </main>

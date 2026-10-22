@@ -51,11 +51,19 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  gap: 10px;
 }
 
 /* ==========================================
    STATUS PILL & BADGES
    ========================================== */
+.status-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;
@@ -520,6 +528,33 @@ tr:hover {
   padding: 20px;
 }
 
+.btn-download {
+  background-color: #10B981;
+  color: #FFFFFF;
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.btn-download:hover {
+  background-color: #059669;
+  transform: translateY(-1px);
+}
+
+.btn-download:disabled {
+  background-color: #9CA3AF;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* ==========================================
    RESPONSIVE LAYOUT UNTUK TAMPILAN HP
    ========================================== */
@@ -528,7 +563,7 @@ tr:hover {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 15px;
+    gap: 12px;
   }
 
   .header-title {
@@ -594,18 +629,19 @@ tr:hover {
     padding: 4px 8px;
   }
 
- .card, 
-  .chart-card, 
+  .card,
+  .chart-card,
   .log-card {
     padding: 12px 8px !important;
     margin-bottom: 12px !important;
   }
 
   /* Atur tinggi & lebar kanvas Grafik */
-  .chart-container, 
+  .chart-container,
   canvas {
     width: 100% !important;
-    max-height: 220px !important; /* Mencegah grafik terlalu tinggi di HP */
+    max-height: 220px !important;
+    /* Mencegah grafik terlalu tinggi di HP */
   }
 
   /* Rapikan Kontrol Paginasi Log */
@@ -626,14 +662,24 @@ tr:hover {
   }
 
   /* Rapikan Tabel Log */
-  table.log-table, 
+  table.log-table,
   table {
     font-size: 11px !important;
-    white-space: nowrap; /* Mencegah baris terlipat jelek */
+    white-space: nowrap;
+    /* Mencegah baris terlipat jelek */
   }
 
-  table th, 
+  table th,
   table td {
     padding: 6px 8px !important;
+  }
+
+  .status-info {
+    justify-content: center;
+  }
+
+  .btn-download {
+    width: auto;
+    margin-top: 4px; /* Memberi jarak bersih di bawah span/text update */
   }
 }
