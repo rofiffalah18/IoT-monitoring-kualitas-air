@@ -376,11 +376,41 @@ body {
 }
 
 .chart-header select {
-  padding: 6px 10px;
-  border-radius: 6px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2064748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px;
+  padding: 8px 32px 8px 12px;
+  border-radius: 8px;
   border: 1px solid #cbd5e1;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
   outline: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease-in-out;
+}
+
+.chart-header select:hover {
+  border-color: #94a3b8;
+  background-color: #f8fafc;
+}
+
+.chart-header select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.chart-header select option {
+  background-color: #ffffff;
+  color: #334155;
+  padding: 8px;
+  font-weight: 500;
 }
 
 .chart-wrapper {
@@ -525,6 +555,20 @@ tr:hover {
     padding: 8px 10px;
   }
 
+  .chart-header {
+    flex-direction: row !important; /* Menjaga judul dan dropdown sejajar di HP */
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .chart-header select {
+    width: auto;
+    font-size: 0.75rem;
+    padding: 6px 28px 6px 10px;
+    background-position: right 8px center;
+  }
+  
   .overview-section,
   .charts-grid {
     grid-template-columns: 1fr;
