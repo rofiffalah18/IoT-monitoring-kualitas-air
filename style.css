@@ -555,27 +555,48 @@ tr:hover {
     padding: 8px 10px;
   }
 
+  .chart-card {
+    padding: 12px 10px !important;
+    overflow: hidden; /* Mencegah grafik melimpah keluar kartu */
+  }
+
+  /* Rapikan header grafik agar judul dan dropdown menumpuk rapi secara vertikal */
   .chart-header {
-    flex-direction: row !important; /* Menjaga judul dan dropdown sejajar di HP */
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .chart-header h3 {
+    font-size: 0.9rem !important;
+    white-space: normal !important; /* Izinkan teks judul terlipat jika layar sangat sempit */
   }
 
   .chart-header select {
-    width: auto;
-    font-size: 0.75rem;
-    padding: 6px 28px 6px 10px;
-    background-position: right 8px center;
-  }
-  
-  .overview-section,
-  .charts-grid {
-    grid-template-columns: 1fr;
+    width: 100% !important; /* Dropdown penuh selebar kartu di HP */
+    max-width: 100% !important;
+    font-size: 0.8rem !important;
   }
 
+  /* Pastikan wrapper kanvas grafik fleksibel 100% */
   .chart-wrapper {
-    height: 220px;
+    position: relative !important;
+    width: 100% !important;
+    height: 200px !important; /* Tinggi yang pas untuk HP */
+    margin-top: 5px;
+  }
+
+  /* Ratakan legenda suhu agar tidak melimpah */
+  .suhu-legend-container {
+    justify-content: flex-start !important;
+    gap: 6px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .legend-badge {
+    font-size: 0.7rem !important;
+    padding: 3px 8px !important;
   }
 
   .table-header {

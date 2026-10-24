@@ -275,21 +275,41 @@ function updateSystemRecommendation(data) {
 // 7. CHART.JS DENGAN FORMAT TICKS & FILTER INTERVAL
 // ==========================================
 function initCharts() {
-  const commonOptions = {
+const commonOptions = {
     responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
+    maintainAspectRatio: false, // Wajib false agar responsif mengikuti tinggi/lebar container
+    layout: {
+      padding: {
+        left: 0,
+        right: 10, // Beri jarak aman 10px di kanan agar titik data terakhir tidak terpotong
+        top: 5,
+        bottom: 0
+      }
+    },
+    plugins: { 
+      legend: { display: false } 
+    },
     scales: {
       x: {
         grid: { display: false },
         ticks: {
           autoSkip: true,
-          maxTicksLimit: 6,
+          maxTicksLimit: 5, // Batasi 5 label saja di sumbu X khusus HP agar tidak berdesakan
           maxRotation: 0,
-          minRotation: 0
+          minRotation: 0,
+          font: {
+            size: 10 // Ukuran teks sumbu X lebih kecil sedikit di mobile
+          }
         }
       },
-      y: { beginAtZero: false }
+      y: { 
+        beginAtZero: false,
+        ticks: {
+          font: {
+            size: 10
+          }
+        }
+      }
     }
   };
 
