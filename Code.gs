@@ -2,8 +2,8 @@
 // KONFIGURASI NAMA SHEET & TIMEZONE
 // ==========================================
 const SHEET_SENSOR = "Data Feeder"; // Tab sheet data sensor utama
-const SHEET_LOG    = "Log Koneksi";     // Tab sheet log koneksi
-const TIME_ZONE    = "Asia/Jakarta";    // WIB (GMT+7)
+const SHEET_LOG = "Log Koneksi";     // Tab sheet log koneksi
+const TIME_ZONE = "Asia/Jakarta";    // WIB (GMT+7)
 
 // ==========================================
 // 1. ENDPOINT UTAMA (POST & GET)
@@ -14,18 +14,32 @@ function doPost(e) {
 
 function doGet(e) {
   if (e && e.parameter) {
+    // 1. Action untuk request data dashboard
     if (e.parameter.action === "read") {
       return getDashboardData();
     }
+
+    // 2. Action untuk download CSV (1 Bulan)
+    if (e.parameter.action === "downloadCSV") {
+      var data = getWaterDataOneMonth();
+      return ContentService.createTextOutput(JSON.stringify(data))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 3. Action untuk buat data dummy
     if (e.parameter.action === "dummy") {
       isiDataDummy();
       return ContentService.createTextOutput("Data dummy berhasil dibuat!")
         .setMimeType(ContentService.MimeType.TEXT);
     }
+
+    // 4. Pengiriman data dari ESP32 via HTTP GET
     if (e.parameter.suhu1) {
       return handleIncomingData(e);
     }
   }
+
+  // Default response jika tidak ada parameter khusus
   return getDashboardData();
 }
 
@@ -38,13 +52,13 @@ function handleIncomingData(e) {
 
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    
+
     // Inisialisasi Sheet Data Monitoring Sensor (Urutan 9 Kolom Sesuai row[0] s/d row[8])
     let sheetSensor = ss.getSheetByName(SHEET_SENSOR);
     if (!sheetSensor) {
       sheetSensor = ss.insertSheet(SHEET_SENSOR);
       sheetSensor.appendRow([
-        "Timestamp", "Suhu Surface (°C)", "Suhu Middle (°C)", "Suhu Bottom (°C)", 
+        "Timestamp", "Suhu Surface (°C)", "Suhu Middle (°C)", "Suhu Bottom (°C)",
         "DO (mg/L)", "pH Air", "Kedalaman (cm)", "Device ID", "Status Log / Catatan"
       ]);
     }
@@ -63,14 +77,14 @@ function handleIncomingData(e) {
       params = e.parameter;
     }
 
-    const deviceId   = params.device_id || "ESP32_POND_MONITOR_01";
-    const suhu1      = (params.suhu1 !== undefined) ? parseFloat(params.suhu1) : -127.0;
-    const suhu2      = (params.suhu2 !== undefined) ? parseFloat(params.suhu2) : -127.0;
-    const suhu3      = (params.suhu3 !== undefined) ? parseFloat(params.suhu3) : -127.0;
-    const doVal      = (params.do !== undefined) ? parseFloat(params.do) : -1.0;
-    const phVal      = (params.ph !== undefined) ? parseFloat(params.ph) : -1.0;
-    const kedalaman  = (params.kedalaman !== undefined) ? parseFloat(params.kedalaman) : -1.0;
-    
+    const deviceId = params.device_id || "ESP32_POND_MONITOR_01";
+    const suhu1 = (params.suhu1 !== undefined) ? parseFloat(params.suhu1) : -127.0;
+    const suhu2 = (params.suhu2 !== undefined) ? parseFloat(params.suhu2) : -127.0;
+    const suhu3 = (params.suhu3 !== undefined) ? parseFloat(params.suhu3) : -127.0;
+    const doVal = (params.do !== undefined) ? parseFloat(params.do) : -1.0;
+    const phVal = (params.ph !== undefined) ? parseFloat(params.ph) : -1.0;
+    const kedalaman = (params.kedalaman !== undefined) ? parseFloat(params.kedalaman) : -1.0;
+
     // Evaluasi Status Kualitas Air (NORMAL, WASPADA, BAHAYA)
     let statusKualitas = "NORMAL";
     let catatan = [];
@@ -110,7 +124,7 @@ function handleIncomingData(e) {
         let timeParts = parts[1] ? parts[1].split(":") : [0, 0, 0];
         let lastLogTime = new Date(dateParts[2], dateParts[1] - 1, dateParts[0], timeParts[0], timeParts[1], timeParts[2]);
         let currentTime = new Date();
-        
+
         let diffMinutes = (currentTime - lastLogTime) / (1000 * 60);
         if (diffMinutes > 31) {
           aktivitasKoneksi = "Terhubung kembali & kirim data";
@@ -153,7 +167,7 @@ function getDashboardData() {
   const result = [];
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
-    
+
     let formattedTime = "";
     if (row[0] instanceof Date) {
       formattedTime = Utilities.formatDate(row[0], TIME_ZONE, "dd/MM/yyyy, HH:mm:ss");
@@ -178,6 +192,39 @@ function getDashboardData() {
   return createJsonResponse(result);
 }
 
+function getWaterDataOneMonth() {
+  // Pastikan nama sheet sesuai dengan yang ada di Google Sheets kamu
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_SENSOR);
+  var data = sheet.getDataRange().getValues();
+
+  if (data.length <= 1) return [];
+
+  var headers = data[0];
+  var result = [];
+
+  var now = new Date();
+  var oneMonthAgo = new Date();
+  oneMonthAgo.setDate(now.getDate() - 30);
+
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var rowDate = new Date(row[0]);
+
+    if (!isNaN(rowDate.getTime()) && rowDate >= oneMonthAgo) {
+      var obj = {};
+      for (var j = 0; j < headers.length; j++) {
+        if (row[j] instanceof Date) {
+          obj[headers[j]] = Utilities.formatDate(row[j], Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+        } else {
+          obj[headers[j]] = row[j];
+        }
+      }
+      result.push(obj);
+    }
+  }
+  return result;
+}
+
 function createJsonResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
@@ -188,12 +235,12 @@ function createJsonResponse(data) {
 // ==========================================
 function isiDataDummy() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  
+
   let sheetSensor = ss.getSheetByName(SHEET_SENSOR);
   if (!sheetSensor) {
     sheetSensor = ss.insertSheet(SHEET_SENSOR);
     sheetSensor.appendRow([
-      "Timestamp", "Suhu Surface (°C)", "Suhu Middle (°C)", "Suhu Bottom (°C)", 
+      "Timestamp", "Suhu Surface (°C)", "Suhu Middle (°C)", "Suhu Bottom (°C)",
       "DO (mg/L)", "pH Air", "Kedalaman (cm)", "Device ID", "Status Log / Catatan"
     ]);
   }
