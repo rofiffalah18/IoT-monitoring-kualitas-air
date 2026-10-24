@@ -103,31 +103,56 @@ Tabel di bawah ini mengintegrasikan seluruh titik penyambungan kabel, modul, pro
 ---
 
 ## 🚀 Alur Kerja Transmisi Data Sistem
-[ Sensor Fisik ] ───► [ ADS1115 / LLC / MAX485 ] ───► [ ESP32 Dev Board ]
-│
-┌──────────────┴──────────────┐
-▼                             ▼
-[ Mode Rutin / NTP ]           [ Pemicu Instan ]
-(Setiap :00 & :30)             (Touch Sensor GPIO 13 /
-Manual Serial / Web Read)
-│                             │
-└──────────────┬──────────────┘
-▼
-[ Auto WiFi Failover ]
-(Wi-Fi 1 ➔ Wi-Fi 2 ➔ Wi-Fi 3)
-│
-▼
-[ Google Apps Script ]
-│
-┌──────────────┴──────────────┐
-▼                             ▼
-[ Sheet Data Feeder ]        [ Sheet LogKoneksi ]
-│                             │
-└──────────────┬──────────────┘
-▼
-[ Web Dashboard System ]
-1. **Pembacaan Sensor:** ESP32 mengambil sampel dari 3x Suhu (DS18B20), Kedalaman (AJ-SR04M), pH (via ADS1115 I2C), dan DO (via RS485 Modbus).
-2. **Evaluasi Status:** ESP32 menganalisis apakah ada sensor yang terputus atau mengalami anomali nilai.
-3. **Pemeriksaan Koneksi (Auto-Failover):** ESP32 secara otomatis memilih jaringan Wi-Fi aktif terdekat (**Wi-Fi 1 Home**, **Wi-Fi 2 Modem**, atau **Wi-Fi 3 GTC IPB**) dengan membawa identitas nama jaringan sederhana (`wifi_name`).
-4. **Transmisi HTTP POST:** Data dikirimkan dalam format JSON mencakup parameter sensor, `device_id`, `status_log`, dan `trigger_type` (`SCHEDULED_30MIN`, `TOUCH_SENSOR`, `SERIAL_FORCE`, atau `RECONNECTED_WIFI`).
-5. **Pencatatan Backend & Visualisasi Web:** Google Apps Script memisah data ke tab `Data Feeder` dan `Log Koneksi`, yang kemudian secara *real-time* diperbarui pada *Dashboard Web Responsive* (lengkap dengan grafik Chart.js, indikator bahaya, dan tabel riwayat log terpaginasi).
++-----------------------------------------------------------------+
+|                         SENSOR FISIK                            |
+|    3x DS18B20 (Suhu) | AJ-SR04M (Kedalaman) | pH | DO Remond    |
++-----------------------------------------------------------------+
+                                │
+                                ▼
++-----------------------------------------------------------------+
+|                    PENGONDISI SINYAL & PROTEKSI                 |
+|       ADS1115 (ADC I2C) | LLC (3.3V-5V) | MAX485 (RS485)          |
++-----------------------------------------------------------------+
+                                │
+                                ▼
++-----------------------------------------------------------------+
+|                        ESP32 DEV BOARD                          |
++-----------------------------------------------------------------+
+                 │                               │
+                 ▼                               ▼
+     [ Pemicu Rutin / NTP ]           [ Pemicu Instan / On-Demand ]
+     - Jam :00 & :30                  - Touch Sensor (GPIO 13)
+                                      - Command Serial (KIRIM)
+                                      - Tombol Web Dashboard
+                 │                               │
+                 └───────────────┬───────────────┘
+                                 │
+                                 ▼
++-----------------------------------------------------------------+
+|                   AUTO WI-FI FAILOVER ENGINE                    |
+|          Wi-Fi 1 (Home)  ─►  Wi-Fi 2 (Modem)  ─►  Wi-Fi 3 (GTC)  |
++-----------------------------------------------------------------+
+                                 │
+                                 ▼
++-----------------------------------------------------------------+
+|             GOOGLE APPS SCRIPT BACKEND (JSON POST)              |
++-----------------------------------------------------------------+
+                 │                               │
+                 ▼                               ▼
+       [ Sheet: Data Feeder ]          [ Sheet: Log Koneksi ]
+                 │                               │
+                 └───────────────┬───────────────┘
+                                 │
+                                 ▼
++-----------------------------------------------------------------+
+|                     DASHBOARD WEB RESPONSIVE                    |
+|      - Real-Time Sensor Cards & Indikator Kualitas Air          |
+|      - Trend Graphic (Chart.js) & Log Activity History          |
++-----------------------------------------------------------------+
+
+### 📝 Tahapan Transmisi Data:
+1. **Pengambilan Sampel:** ESP32 membaca 4 parameter fisik air (suhu 3 kedalaman, kedalaman air, pH, dan DO) via I2C, OneWire, dan RS485 Modbus RTU.
+2. **Evaluasi & Formatting:** Data divalidasi status keterhubungannya (mengecek sensor terputus/error) lalu dikemas dalam format JSON.
+3. **Pemeriksaan Koneksi (Failover):** ESP32 memilih jalur Wi-Fi aktif terdekat secara otomatis (*Wi-Fi 1*, *Wi-Fi 2*, atau *Wi-Fi 3*).
+4. **Backend Processing:** Google Apps Script memisahkan payload JSON ke tab **Data Feeder** (data sensor) dan **Log Koneksi** (catatan transmisi/jaringan).
+5. **Visualisasi Web:** Web Dashboard mengambil data secara asynchronous via REST API untuk memperbarui kartu sensor, grafik Chart.js, dan tabel riwayat log.
