@@ -13,11 +13,46 @@ function doPost(e) {
   return handleIncomingData(e);
 }
 
+// Fungsi utama penulisan Log
+function logWebActivity(statusMsg, triggerType) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    
+    // Cari sheet 'Log Koneksi', jika tidak ada cari sheet kedua
+    let sheetLog = ss.getSheetByName("Log Koneksi");
+    if (!sheetLog) {
+      sheetLog = ss.getSheets()[1]; // Fallback ke tab kedua
+    }
+
+    if (!sheetLog) {
+      Logger.log("ERROR: Sheet Log tidak ditemukan!");
+      return;
+    }
+
+    const now = new Date();
+    const formattedTime = Utilities.formatDate(now, "Asia/Jakarta", "yyyy-MM-dd HH:mm:ss");
+    
+    // Tambah baris ke sheet
+    sheetLog.appendRow([
+      formattedTime, 
+      "WEB_DASHBOARD", 
+      statusMsg, 
+      triggerType, 
+      "DASHBOARD_HTTP"
+    ]);
+
+    SpreadsheetApp.flush(); // Paksa Google Sheets langsung menyimpan data
+  } catch (err) {
+    Logger.log("Gagal append log: " + err.toString());
+  }
+}
+
 function doGet(e) {
-  const action = e ? e.parameter.action : "";
+  // Ambil parameter action dari URL
+  const action = (e && e.parameter && e.parameter.action) ? e.parameter.action : "";
   const scriptProperties = PropertiesService.getScriptProperties();
 
-  // 1. ESP32 Polling Pemicu
+  // 1. ESP32 Polling Trigger
   if (action === "checkTrigger") {
     const isTriggered = scriptProperties.getProperty("FLAG_READ_TRIGGER") === "TRUE";
     if (isTriggered) {
@@ -27,16 +62,18 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // 2. Tombol Web Diklik
+  // 2. Tombol Web Diklik (Set Flag + Catat Log Mandiri)
   if (action === "setReadTrigger") {
     scriptProperties.setProperty("FLAG_READ_TRIGGER", "TRUE");
+    
+    // LANGSUNG CATAT LOG SAAT TOMBOL DIKLIK
     logWebActivity("WEB_TRIGGER_SENT", "WEB_MANUAL_READ");
 
     return ContentService.createTextOutput(JSON.stringify({ status: "SUCCESS_FLAG_SET" }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // 3. Pemicu Timeout jika ESP32 Offline / Gagal Respons
+  // 3. Catat Log Saat ESP32 Gagal Respons / Timeout
   if (action === "logWebTimeout") {
     logWebActivity("ESP32_NO_RESPONSE_OFFLINE", "WEB_MANUAL_READ_FAILED");
 
@@ -48,6 +85,7 @@ function doGet(e) {
     return getWaterDataOneMonth();
   }
 
+  // Default: Ambil data dashboard
   return getDashboardData();
 }
 
@@ -289,24 +327,6 @@ function createMonthlyTrigger() {
     .atHour(0)
     .nearMinute(5)
     .create();
-}
-
-function logWebActivity(statusMsg, triggerType) {
-  try {
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheetLog = ss.getSheetByName(SHEET_LOG); // <-- Pastikan ejaan nama tab sama persis
-    if (!sheetLog) {
-      Logger.log("Sheet Log Koneksi tidak ditemukan!");
-      return;
-    }
-
-    const now = new Date();
-    const formattedTime = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
-    
-    sheetLog.appendRow([formattedTime, "WEB_DASHBOARD", statusMsg, triggerType, "DASHBOARD_HTTP"]);
-  } catch (err) {
-    Logger.log("Gagal catat log web: " + err.toString());
-  }
 }
 
 // ==========================================

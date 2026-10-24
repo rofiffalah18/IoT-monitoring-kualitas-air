@@ -544,15 +544,16 @@ async function triggerWebRead() {
   try {
     const oldLatestTimestamp = rawDataSensor.length > 0 ? rawDataSensor[rawDataSensor.length - 1].timestamp : "";
 
-    // 1. Kirim sinyal trigger ke GS
-    await fetch(`${SCRIPT_URL}?action=setReadTrigger`);
+    // 1. Kirim sinyal trigger & catat log WEB_TRIGGER_SENT ke server
+    console.log("Mengirim pemicu ke Apps Script...");
+    await fetch(`${SCRIPT_URL}?action=setReadTrigger`, { redirect: 'follow' });
 
     btn.innerText = "⏳ Menunggu Respon ESP32...";
 
-    // 2. Kunci tombol selama 2 menit
+    // 2. Aktifkan cooldown tombol 2 menit
     startCooldown(btnId, storageKey, defaultText);
 
-    // 3. Evaluasi respon setelah 10 detik
+    // 3. Evaluasi respons setelah 10 detik
     setTimeout(async () => {
       await fetchData();
 
@@ -561,18 +562,18 @@ async function triggerWebRead() {
       if (newLatestData && newLatestData.timestamp !== oldLatestTimestamp) {
         alert(`✅ SUKSES! ESP32 berhasil merespons perintah web.\nData real-time baru telah ditambahkan (${newLatestData.timestamp}).`);
       } else {
-        // GAGAL: Panggil API catat log gagal secara eksplisit
-        btn.innerText = "⏳ Mencatat Log Gagal...";
+        // GAGAL: Panggil API catat log timeout secara eksplisit
+        console.log("ESP32 tidak merespons, mengirim log timeout...");
         
         try {
-          await fetch(`${SCRIPT_URL}?action=logWebTimeout`, { mode: 'no-cors' });
-        } catch (e) {
-          console.log("Catat log timeout dikirim.");
+          await fetch(`${SCRIPT_URL}?action=logWebTimeout`, { redirect: 'follow' });
+        } catch (errLog) {
+          console.error("Gagal kirim log timeout:", errLog);
         }
 
         alert(`⚠️ PERINGATAN: ESP32 Tidak Merespons / Offline!\n\nRiwayat percobaan ambil data telah dicatat ke Log Koneksi dengan status GAGAL.`);
         
-        // Refresh ulang data agar log baru langsung ter-render di tabel web
+        // Refresh ulang data agar baris log kegagalan baru langsung ter-render di tabel web
         setTimeout(async () => {
           await fetchData();
         }, 1500);
