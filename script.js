@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initCharts();
   fetchData();
   setupFilterListeners();
-
+  
   // Cek & Pulihkan status cooldown tombol dari localStorage jika halaman di-refresh
   checkCooldownState('btnExport', 'cooldown_download', '📥 Download CSV');
   checkCooldownState('btnForceRead', 'cooldown_read', '🔄 Ambil Data Real-Time');
@@ -125,7 +125,6 @@ function checkESP32Status(latestData) {
   const lastDataTime = parseCustomDate(latestData.timestamp);
   const diffInMinutes = Math.floor((now - lastDataTime) / (1000 * 60));
 
-  // Alat dianggap ONLINE jika transmisi masuk <= 35 Menit (Toleransi jadwal 30 menit)
   if (diffInMinutes <= 35) {
     statusContainer.className = "status-pill online";
     txtStatus.innerText = "ONLINE";
@@ -158,7 +157,7 @@ function updateSensorCards(data) {
   const isSuhu3Danger = data.suhu3 === -127 || data.suhu3 < 25.0 || data.suhu3 > 32.0;
   const isDODanger = data.do === -1 || data.do < 3.0;
   const isPHDanger = data.ph === -1 || data.ph < 5.5 || data.ph > 8.5;
-  const isKedalamanDanger = data.kedalaman === -1 || data.kedalaman < 80.0; // < 80 cm
+  const isKedalamanDanger = data.kedalaman === -1 || data.kedalaman < 80.0;
 
   setConditionText("status-suhu1", isSuhu1Danger ? "Bahaya / Anomali" : "Normal");
   setConditionText("status-suhu2", isSuhu2Danger ? "Bahaya / Anomali" : "Normal");
@@ -275,7 +274,6 @@ function updateSystemRecommendation(data) {
 // ==========================================
 // 7. CHART.JS DENGAN FORMAT TICKS & FILTER INTERVAL
 // ==========================================
-
 function initCharts() {
   const commonOptions = {
     responsive: true,
@@ -285,9 +283,9 @@ function initCharts() {
       x: {
         grid: { display: false },
         ticks: {
-          autoSkip: true,         // Otomatis lewati label yang terlalu rapat
-          maxTicksLimit: 6,       // MAXIMAL HANYA MUNCUL 6 LABEL RANGE DI SUMBU X
-          maxRotation: 0,         // Jaga teks tetap mendatar
+          autoSkip: true,
+          maxTicksLimit: 6,
+          maxRotation: 0,
           minRotation: 0
         }
       },
@@ -339,14 +337,21 @@ function initCharts() {
   }
 }
 
+function updateChartData(data) {
+  if (!data || data.length === 0) return;
+  rawDataSensor = data;
+
+  updateSingleChart("suhu");
+  updateSingleChart("do");
+  updateSingleChart("ph");
+  updateSingleChart("kedalaman");
+}
+
 function updateSingleChart(type) {
   const selectElem = document.getElementById(`filter-${type}`);
   const filterVal = selectElem ? selectElem.value : "today";
 
-  // 1. Filter data berdasarkan waktu yang dipilih
   const rawFilteredData = filterDataByTime(rawDataSensor, filterVal);
-
-  // 2. Hilangkan duplikat dalam kurun waktu/menit yang sama (ambil data paling baru di menit/detik tsb)
   const uniqueDataMap = new Map();
 
   rawFilteredData.forEach(item => {
@@ -359,24 +364,19 @@ function updateSingleChart(type) {
     let timeKey = "";
 
     if (filterVal === "1h") {
-      // Key unik per jam:menit (Mengabaikan detik agar data dalam menit yang sama digabung)
       timeKey = `${timeParts[0]}:${timeParts[1]}`;
     } else if (filterVal === "today") {
-      // Key unik per jam:menit
       timeKey = `${timeParts[0]}:${timeParts[1]}`;
     } else if (filterVal === "7d") {
-      // Key unik per hari
       const itemDate = parseCustomDate(cleanStr);
       const namaHari = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
       timeKey = namaHari[itemDate.getDay()];
     } else if (filterVal === "30d") {
-      // Key unik per tanggal
       timeKey = `${dateParts[0]}/${dateParts[1]}`;
     } else {
       timeKey = cleanStr;
     }
 
-    // Hanya menyimpan 1 data paling akhir jika ada menit/tanggal yang sama
     uniqueDataMap.set(timeKey, {
       label: timeKey,
       suhu1: item.suhu1,
@@ -391,7 +391,6 @@ function updateSingleChart(type) {
   const finalProcessedData = Array.from(uniqueDataMap.values());
   const labels = finalProcessedData.map(d => d.label);
 
-  // 3. Update grafik sesuai tipe parameter
   if (type === "suhu" && chartSuhu) {
     chartSuhu.data.labels = labels;
     chartSuhu.data.datasets[0].data = finalProcessedData.map(item => item.suhu1);
@@ -430,23 +429,20 @@ function filterDataByTime(data, filterValue) {
 }
 
 // ==========================================
-// 8. TABEL LOG RIWAYAT AKTIVITAS
+// 8. TABEL LOG RIWAYAT AKTIVITAS (MAX 200 DATA / 20 HALAMAN)
 // ==========================================
 function renderActivityHistory(data) {
   if (!data || data.length === 0) return;
 
   const now = new Date();
 
-  // 1. Urutkan dari data paling baru (reverse)
-  // 2. Filter data 7 hari terakhir
-  // 3. Batasi MAKSIMAL 200 DATA TERBARU saja (slice 0 s/d 200)
   filteredLogData = [...data]
     .reverse()
     .filter(item => {
       const itemDate = parseCustomDate(item.timestamp);
       return (now - itemDate) <= (7 * 24 * 60 * 60 * 1000);
     })
-    .slice(0, 200); // 🔒 BATAS MAX 200 DATA (20 HALAMAN x 10 BARIS)
+    .slice(0, 200);
 
   displayLogPage(currentLogPage);
 }
@@ -458,10 +454,8 @@ function displayLogPage(page) {
   tbody.innerHTML = "";
 
   const totalRows = filteredLogData.length;
-
-  // Batasi total halaman maksimal 20 halaman
   let totalPages = Math.ceil(totalRows / logRowsPerPage) || 1;
-  if (totalPages > 20) totalPages = 20; // 🔒 MAKSIMAL 20 HALAMAN
+  if (totalPages > 20) totalPages = 20;
 
   if (page < 1) page = 1;
   if (page > totalPages) page = totalPages;
@@ -495,16 +489,15 @@ function displayLogPage(page) {
     });
   }
 
-  // Update Teks Informasi Halaman (misal: "Halaman 1 dari 20")
   const pageInfo = document.getElementById("log-page-info");
   if (pageInfo) pageInfo.innerText = `Halaman ${currentLogPage} dari ${totalPages}`;
 
-  // Kunci tombol Prev dan Next secara presisi
   const btnPrev = document.getElementById("btn-prev-log");
   const btnNext = document.getElementById("btn-next-log");
   if (btnPrev) btnPrev.disabled = (currentLogPage === 1);
   if (btnNext) btnNext.disabled = (currentLogPage === totalPages || totalPages === 0);
 }
+
 function prevLogPage() {
   if (currentLogPage > 1) displayLogPage(currentLogPage - 1);
 }
@@ -517,8 +510,6 @@ function nextLogPage() {
 // ==========================================
 // 9. TOMBOL WEB ACTION (FETCH, COOLDOWN & TIMEOUT)
 // ==========================================
-
-// A. TOMBOL "🔄 AMBIL DATA REAL-TIME"
 async function triggerWebRead() {
   const btnId = 'btnForceRead';
   const storageKey = 'cooldown_read';
@@ -531,13 +522,13 @@ async function triggerWebRead() {
   btn.disabled = true;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 Detik Timeout
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
 
   try {
     const response = await fetch(`${SCRIPT_URL}?action=read`, {
       signal: controller.signal
     });
-
+    
     clearTimeout(timeoutId);
     if (!response.ok) throw new Error("Gagal terhubung ke server.");
 
@@ -549,11 +540,8 @@ async function triggerWebRead() {
       return;
     }
 
-    // Refresh Tampilan UI Dashboard
     fetchData();
     alert("✅ Data terbaru berhasil diperbarui!");
-
-    // Aktifkan Cooldown 2 Menit jika Sukses
     startCooldown(btnId, storageKey, defaultText);
 
   } catch (err) {
@@ -567,7 +555,6 @@ async function triggerWebRead() {
   }
 }
 
-// B. TOMBOL "📥 DOWNLOAD CSV"
 async function downloadCSV() {
   const btnId = 'btnExport';
   const storageKey = 'cooldown_download';
@@ -580,13 +567,13 @@ async function downloadCSV() {
   btn.disabled = true;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 Detik Timeout
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
 
   try {
     const response = await fetch(`${SCRIPT_URL}?action=downloadCSV`, {
       signal: controller.signal
     });
-
+    
     clearTimeout(timeoutId);
     if (!response.ok) throw new Error("Gagal terhubung ke server Google Apps Script.");
 
@@ -598,7 +585,6 @@ async function downloadCSV() {
       return;
     }
 
-    // Format Data ke CSV
     const headers = Object.keys(data[0]);
     let csvContent = headers.join(",") + "\n";
 
@@ -612,19 +598,17 @@ async function downloadCSV() {
       csvContent += values.join(",") + "\n";
     });
 
-    // Pemicu Unduh File
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     const monthYear = new Date().toISOString().slice(0, 7);
-
+    
     link.setAttribute("href", url);
     link.setAttribute("download", `Data_WaterMonitoring_${monthYear}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 
-    // Aktifkan Cooldown 2 Menit jika Sukses
     startCooldown(btnId, storageKey, defaultText);
 
   } catch (err) {
@@ -663,7 +647,7 @@ function checkCooldownState(buttonId, storageKey, defaultText) {
 
     if (remainingMs > 0) {
       btn.disabled = true;
-
+      
       const intervalId = setInterval(() => {
         const currentRemaining = parseInt(localStorage.getItem(storageKey)) - Date.now();
 
