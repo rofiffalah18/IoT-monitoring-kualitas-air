@@ -388,21 +388,23 @@ function updateSingleChart(type) {
   const selectElem = document.getElementById(`filter-${type}`);
   const filterVal = selectElem ? selectElem.value : "today";
 
-  const rawFilteredData = filterDataByTime(rawDataSensor, filterVal);
+  // 1. FILTER KHUSUS DATA SENSOR (Abaikan baris log web yang tidak punya angka)
+  const sensorOnlyData = rawDataSensor.filter(item => !item.is_log_only && item.suhu1 !== undefined && !isNaN(item.suhu1));
+
+  // 2. Filter berdasarkan waktu (1h, today, 7d, 30d)
+  const rawFilteredData = filterDataByTime(sensorOnlyData, filterVal);
   const uniqueDataMap = new Map();
 
   rawFilteredData.forEach(item => {
     if (!item.timestamp) return;
-    const cleanStr = item.timestamp.replace("'", "").trim();
+    const cleanStr = item.timestamp.toString().replace("'", "").trim();
     const parts = cleanStr.split(", ");
     const dateParts = parts[0] ? parts[0].split("/") : ["01", "01", "2026"];
     const timeParts = parts[1] ? parts[1].split(":") : ["00", "00", "00"];
 
     let timeKey = "";
 
-    if (filterVal === "1h") {
-      timeKey = `${timeParts[0]}:${timeParts[1]}`;
-    } else if (filterVal === "today") {
+    if (filterVal === "1h" || filterVal === "today") {
       timeKey = `${timeParts[0]}:${timeParts[1]}`;
     } else if (filterVal === "7d") {
       const itemDate = parseCustomDate(cleanStr);
@@ -414,20 +416,22 @@ function updateSingleChart(type) {
       timeKey = cleanStr;
     }
 
+    // Masukkan data valid ke Map
     uniqueDataMap.set(timeKey, {
       label: timeKey,
-      suhu1: item.suhu1,
-      suhu2: item.suhu2,
-      suhu3: item.suhu3,
-      do: item.do,
-      ph: item.ph,
-      kedalaman: item.kedalaman
+      suhu1: parseFloat(item.suhu1) || 0,
+      suhu2: parseFloat(item.suhu2) || 0,
+      suhu3: parseFloat(item.suhu3) || 0,
+      do: parseFloat(item.do) || 0,
+      ph: parseFloat(item.ph) || 0,
+      kedalaman: parseFloat(item.kedalaman) || 0
     });
   });
 
   const finalProcessedData = Array.from(uniqueDataMap.values());
   const labels = finalProcessedData.map(d => d.label);
 
+  // 3. Render ke Chart.js
   if (type === "suhu" && chartSuhu) {
     chartSuhu.data.labels = labels;
     chartSuhu.data.datasets[0].data = finalProcessedData.map(item => item.suhu1);
@@ -448,7 +452,6 @@ function updateSingleChart(type) {
     chartKedalaman.update();
   }
 }
-
 function filterDataByTime(data, filterValue) {
   if (!data || data.length === 0) return [];
   if (filterValue === "all") return data;
