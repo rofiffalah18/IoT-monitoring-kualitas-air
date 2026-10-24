@@ -6,70 +6,82 @@
 #include <Adafruit_ADS1X15.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
-#include "esp_eap_client.h" // Library EAP-PEAP Enterprise (GTC IPB)
 #include "time.h"
+#include "esp_eap_client.h" // Library EAP Enterprise Terbaru
 
 // ============================================================================
 // 1. KONFIGURASI GLOBAL & PINOUT
 // ============================================================================
 
 // URL Web App Google Apps Script
-const char* serverURL = "https://script.google.com/macros/s/AKfycbx.../exec"; 
+const char* serverURL = "https://script.google.com/macros/s/AKfycbzPcQ6YPapGf37XNUF3TofDkfkWLkMM5ibjBDk301uX7SRv-J9l-ipdxPVhnD2An4XlfQ/exec";
 
-// NTP Time Server
+// Server NTP untuk Sinkronisasi Waktu
 const char* ntpServer = "pool.ntp.org";
-const long gmtOffset_sec = 7 * 3600; // GMT+7 (WIB)
+const long gmtOffset_sec = 7 * 3600;  // GMT+7 (WIB)
 const int daylightOffset_sec = 0;
 
-// KREDENSIAL WI-FI
-#define EAP_IDENTITY "NIM_KAMU_DI_SINI"  // Contoh: G7401241067
-#define EAP_PASSWORD "PASSWORD_IPB_KAMU"
+// KREDENSIAL 3 JARINGAN WI-FI
+// ----------------------------------------------------------------------------
+// Wi-Fi 1: Router Utama / Home (WPA2 Personal)
+const char* WIFI_HOME_SSID = "";
+const char* WIFI_HOME_PASS = "";
 
-const char* WIFI_HOME_SSID  = "WiFi_Kolam_Utama";
-const char* WIFI_HOME_PASS  = "password123";
+// Wi-Fi 2: Hotspot Modem USB / HP (WPA2 Personal)
+const char* WIFI_MODEM_SSID = "";
+const char* WIFI_MODEM_PASS = "";
 
-const char* WIFI_MODEM_SSID = "Hotspot_Modem_USB";
-const char* WIFI_MODEM_PASS = "internet123";
+// Wi-Fi 3: GTC IPB Enterprise (WPA2 Enterprise / PEAP)
+#define EAP_IDENTITY ""
+#define EAP_PASSWORD ""
+// ----------------------------------------------------------------------------
 
-// PIN ESP32
+// Definisi Pin ESP32 (30-Pin)
 #define ONE_WIRE_BUS 4
 #define TRIG_PIN     5
 #define ECHO_PIN     18
 #define RX2_PIN      16
 #define TX2_PIN      17
 #define DE_RE_PIN    15
+#define TOUCH_PIN    13 // Pin Touch Sensor TTP223
 
-// OBJECT & SENSOR
+// Inisialisasi Bus & Sensor
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 Adafruit_ADS1115 ads;
 
-DeviceAddress sensorSurface = { 0x28, 0xFF, 0x64, 0x1E, 0x82, 0x17, 0x04, 0x5D };
-DeviceAddress sensorMiddle  = { 0x28, 0xFF, 0x31, 0x1E, 0x82, 0x17, 0x05, 0xA1 };
-DeviceAddress sensorBottom  = { 0x28, 0xFF, 0x90, 0x1E, 0x82, 0x17, 0x06, 0x22 };
+// Alamat Hardware ROM DS18B20 Terkunci
+DeviceAddress sensorSurface = {};
+DeviceAddress sensorMiddle  = {};
+DeviceAddress sensorBottom  = {};
 
-const float TINGGI_MAX_KOLAM = 200.0; // cm
+// Konstanta Kalibrasi Sensor
+const float TINGGI_MAX_KOLAM = 200.0;  // cm
 const float TEGANGAN_PH_7    = 1500.0; // mV
 const float PH_PER_MV        = 0.0035;
 
-const byte requestFrameDO[]  = {0x01, 0x03, 0x00, 0x00, 0x00, 0x02, 0xC4, 0x0B};
+// Frame Modbus RTU Remond RMD-ISDTY105 (DO Sensor)
+const byte requestFrameDO[] = { 0x01, 0x03, 0x00, 0x00, 0x00, 0x02, 0xC4, 0x0B };
 
-// VARIABLE SKEDULER & TEST
+// Flag Kontrol Jadwal, Active Network & Mode Manual
 bool sudahKirimMenit00 = false;
 bool sudahKirimMenit30 = false;
+
+String activeWiFiName = "Wi-Fi 1"; // Menyimpan "Wi-Fi 1", "Wi-Fi 2", atau "Wi-Fi 3"
 
 bool modeManual = false;
 float manual_s1 = 25.0, manual_s2 = 25.0, manual_s3 = 25.0;
 float manual_kedalaman = 150.0, manual_ph = 7.0, manual_do = 6.5;
 
-// PROTOTYPE FUNGSI
-void kirimDataJSON(float s1, float s2, float s3, float kedalaman, float ph, float doVal);
+// Prototype Fungsi
+void kirimDataJSON(float s1, float s2, float s3, float kedalaman, float ph, float doVal, String triggerType);
+void voidMaintainWiFi();
 
 // ============================================================================
-// 2. VOID SENSOR 1: SUHU DS18B20 (3 PARAMETER)
+// 2. VOID SENSOR 1: SUHU DS18B20 (PERMUKAAN, TENGAH, DASAR)
 // ============================================================================
 
-void voidBacaSuhu(float &s1, float &s2, float &s3) {
+void voidBacaSuhu(float& s1, float& s2, float& s3) {
   sensors.requestTemperatures();
   s1 = sensors.getTempC(sensorSurface);
   s2 = sensors.getTempC(sensorMiddle);
@@ -114,7 +126,7 @@ float voidBacaKedalaman() {
 }
 
 // ============================================================================
-// 4. VOID SENSOR 3: pH AIR (MODUL BNC + ADS1115 ADC I2C)
+// 4. VOID SENSOR 3: pH AIR (SENSING BNC + ADS1115 ADC I2C)
 // ============================================================================
 
 float voidBacaPH() {
@@ -133,7 +145,7 @@ float voidBacaPH() {
 }
 
 // ============================================================================
-// 5. VOID SENSOR 4: DO REMOND (MAX485 MODBUS RTU)
+// 5. VOID SENSOR 4: DO REMOND (MAX485 MODBUS RTU VIA RS485)
 // ============================================================================
 
 float voidBacaDORemond() {
@@ -165,7 +177,38 @@ float voidBacaDORemond() {
 }
 
 // ============================================================================
-// 6. VOID UJI COBA SERIAL MONITOR (TESTING MANUAL VIA KEYBOARD)
+// 6. VOID MANUAL TRIGGER: TOUCH SENSOR TTP223 (GPIO 13)
+// ============================================================================
+
+void voidCekTouchSensor() {
+  if (digitalRead(TOUCH_PIN) == HIGH) {
+    delay(50); // Debounce
+    if (digitalRead(TOUCH_PIN) == HIGH) {
+      Serial.println("\n👉 [TOUCH SENSOR DISENTUH] Mengirim data instan...");
+
+      float s1, s2, s3, k, p, d;
+      if (modeManual) {
+        s1 = manual_s1; s2 = manual_s2; s3 = manual_s3;
+        k = manual_kedalaman; p = manual_ph; d = manual_do;
+      } else {
+        voidBacaSuhu(s1, s2, s3);
+        k = voidBacaKedalaman();
+        p = voidBacaPH();
+        d = voidBacaDORemond();
+      }
+
+      kirimDataJSON(s1, s2, s3, k, p, d, "TOUCH_SENSOR");
+
+      // Tahan proses sampai sentuhan dilepas
+      while (digitalRead(TOUCH_PIN) == HIGH) {
+        delay(10);
+      }
+    }
+  }
+}
+
+// ============================================================================
+// 7. VOID UJI COBA SERIAL MONITOR (INPUT KEYBOARD)
 // ============================================================================
 
 void voidUjiCobaSerial() {
@@ -173,8 +216,6 @@ void voidUjiCobaSerial() {
     String input = Serial.readStringUntil('\n');
     input.trim();
 
-    // Perintah 1: Set data manual
-    // Format: SET:suhu1,suhu2,suhu3,kedalaman,ph,do
     if (input.startsWith("SET:")) {
       String dataStr = input.substring(4);
       int idx1 = dataStr.indexOf(',');
@@ -192,65 +233,60 @@ void voidUjiCobaSerial() {
         manual_do = dataStr.substring(idx5 + 1).toFloat();
 
         modeManual = true;
-        Serial.println("\n✅ [MODE MANUAL TEST AKTIF] Data simulasi tersimpan!");
-        Serial.printf("S1: %.2f | S2: %.2f | S3: %.2f | Depth: %.2f | pH: %.2f | DO: %.2f\n\n",
-                      manual_s1, manual_s2, manual_s3, manual_kedalaman, manual_ph, manual_do);
+        Serial.println("\n✅ [MODE SIMULASI AKTIF] Data uji coba diset!");
       }
-    } 
-    // Perintah 2: Paksa kirim detik ini
+    }
     else if (input == "KIRIM") {
-      Serial.println("\n🚀 Memaksa pengiriman data ke Google Apps Script...");
+      Serial.println("\n🚀 Memaksa pengiriman data sekarang...");
       if (modeManual) {
-        kirimDataJSON(manual_s1, manual_s2, manual_s3, manual_kedalaman, manual_ph, manual_do);
+        kirimDataJSON(manual_s1, manual_s2, manual_s3, manual_kedalaman, manual_ph, manual_do, "SERIAL_FORCE");
       } else {
         float s1, s2, s3, k, p, d;
         voidBacaSuhu(s1, s2, s3);
         k = voidBacaKedalaman();
         p = voidBacaPH();
         d = voidBacaDORemond();
-        kirimDataJSON(s1, s2, s3, k, p, d);
+        kirimDataJSON(s1, s2, s3, k, p, d, "SERIAL_FORCE");
       }
     }
-    // Perintah 3: Kembalikan ke sensor fisik
     else if (input == "AUTO") {
       modeManual = false;
-      Serial.println("\n🔄 Mode simulasi dimatikan. Menggunakan pembacaan sensor fisik.");
+      Serial.println("\n🔄 Mode simulasi dimatikan. Kembali ke sensor fisik.");
     }
   }
 }
 
 // ============================================================================
-// 7. VOID WI-FI CONNECTION MANAGEMENT (3 NETWORKS)
+// 8. VOID WI-FI FAILOVER BERTIAT (HOME ➔ MODEM ➔ GTC IPB)
 // ============================================================================
 
-bool connectWPA2Personal(const char* ssid, const char* pass, int timeoutSec = 8) {
+bool connectWPA2Personal(const char* ssid, const char* pass, int timeoutSec = 6) {
   WiFi.disconnect(true);
-  delay(100);
+  delay(50);
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, pass);
-  
-  Serial.printf("Mencoba koneksi WPA2 Personal [%s]...", ssid);
+
+  Serial.printf("[WiFi] Mencoba terhubung ke [%s]...", ssid);
   int counter = 0;
   while (WiFi.status() != WL_CONNECTED && counter < (timeoutSec * 2)) {
     delay(500);
     Serial.print(".");
     counter++;
   }
-  
+
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\n✅ Terhubung ke Wi-Fi WPA2 Personal!");
-    Serial.print("IP Address: "); Serial.println(WiFi.localIP());
+    Serial.println("\n✅ [WiFi] Terhubung!");
     return true;
   }
-  Serial.println("\n❌ Gagal.");
+  Serial.println("\n❌ [WiFi] Gagal.");
   return false;
 }
 
-bool connectGTCIPB(int timeoutSec = 10) {
+bool connectGTCIPB(int timeoutSec = 8) {
   WiFi.disconnect(true);
-  delay(100);
+  delay(50);
   WiFi.mode(WIFI_STA);
-  
+
   esp_eap_client_set_identity((uint8_t *)EAP_IDENTITY, strlen(EAP_IDENTITY));
   esp_eap_client_set_username((uint8_t *)EAP_IDENTITY, strlen(EAP_IDENTITY));
   esp_eap_client_set_password((uint8_t *)EAP_PASSWORD, strlen(EAP_PASSWORD));
@@ -258,7 +294,7 @@ bool connectGTCIPB(int timeoutSec = 10) {
 
   WiFi.begin("GTC", NULL, 0, NULL, false);
 
-  Serial.print("Mencoba koneksi Enterprise [GTC IPB]...");
+  Serial.print("[WiFi] Mencoba koneksi Enterprise [GTC IPB]...");
   int counter = 0;
   while (WiFi.status() != WL_CONNECTED && counter < (timeoutSec * 2)) {
     delay(500);
@@ -267,33 +303,46 @@ bool connectGTCIPB(int timeoutSec = 10) {
   }
 
   if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\n✅ Terhubung ke GTC IPB!");
-    Serial.print("IP Address: "); Serial.println(WiFi.localIP());
+    Serial.println("\n✅ [WiFi] Terhubung ke GTC IPB!");
     return true;
   }
   
   esp_wifi_sta_enterprise_disable();
-  Serial.println("\n❌ Gagal koneksi GTC IPB.");
+  Serial.println("\n❌ [WiFi] Gagal koneksi GTC IPB.");
   return false;
 }
 
 void voidMaintainWiFi() {
   if (WiFi.status() == WL_CONNECTED) return;
 
-  Serial.println("\n⚠️ Wi-Fi terputus! Memeriksa pilihan koneksi...");
+  Serial.println("\n==================================================");
+  Serial.println("⚠️ Wi-Fi Terputus! Memulai Auto-Refresh Failover...");
+  Serial.println("==================================================");
 
-  if (connectWPA2Personal(WIFI_HOME_SSID, WIFI_HOME_PASS)) return;
-  if (connectWPA2Personal(WIFI_MODEM_SSID, WIFI_MODEM_PASS)) return;
-  if (connectGTCIPB()) return;
+  // 1. Cek Wi-Fi 1 (Home/Router Utama)
+  if (connectWPA2Personal(WIFI_HOME_SSID, WIFI_HOME_PASS)) {
+    activeWiFiName = "Wi-Fi 1";
+    return;
+  }
+  // 2. Cek Wi-Fi 2 (Hotspot Modem USB)
+  else if (connectWPA2Personal(WIFI_MODEM_SSID, WIFI_MODEM_PASS)) {
+    activeWiFiName = "Wi-Fi 2";
+    return;
+  }
+  // 3. Cek Wi-Fi 3 (GTC IPB Campus)
+  else if (connectGTCIPB()) {
+    activeWiFiName = "Wi-Fi 3";
+    return;
+  }
 
-  Serial.println("❌ Seluruh koneksi Wi-Fi gagal. Mencoba ulang nanti.\n");
+  Serial.println("\n🔴 [WiFi] Seluruh opsi koneksi gagal.\n");
 }
 
 // ============================================================================
-// 8. VOID TRANSMISI HTTP POST DATA JSON
+// 9. VOID TRANSMISI HTTP POST DATA JSON KE GOOGLE APPS SCRIPT
 // ============================================================================
 
-void kirimDataJSON(float s1, float s2, float s3, float kedalaman, float ph, float doVal) {
+void kirimDataJSON(float s1, float s2, float s3, float kedalaman, float ph, float doVal, String triggerType) {
   voidMaintainWiFi();
 
   if (WiFi.status() == WL_CONNECTED) {
@@ -312,14 +361,16 @@ void kirimDataJSON(float s1, float s2, float s3, float kedalaman, float ph, floa
     }
 
     StaticJsonDocument<400> doc;
-    doc["suhu1"]      = s1;
-    doc["suhu2"]      = s2;
-    doc["suhu3"]      = s3;
-    doc["kedalaman"]  = kedalaman;
-    doc["ph"]         = ph;
-    doc["do"]         = doVal;
-    doc["device_id"]  = "ESP32_POND_MONITOR_01";
-    doc["status_log"] = statusLog;
+    doc["suhu1"]        = s1;
+    doc["suhu2"]        = s2;
+    doc["suhu3"]        = s3;
+    doc["kedalaman"]    = kedalaman;
+    doc["ph"]           = ph;
+    doc["do"]           = doVal;
+    doc["device_id"]    = "ESP32_POND_MONITOR_01";
+    doc["status_log"]   = statusLog;
+    doc["trigger_type"] = triggerType;    // Tipe pemicu dikirim ke GS
+    doc["wifi_name"]    = activeWiFiName; // Menyimpan "Wi-Fi 1", "Wi-Fi 2", atau "Wi-Fi 3"
 
     String jsonString;
     serializeJson(doc, jsonString);
@@ -337,9 +388,6 @@ void kirimDataJSON(float s1, float s2, float s3, float kedalaman, float ph, floa
     if (httpResponseCode > 0) {
       Serial.print("✅ Status Kirim Sukses | Code: ");
       Serial.println(httpResponseCode);
-      String response = http.getString();
-      Serial.print("Response Web App: ");
-      Serial.println(response);
     } else {
       Serial.print("❌ Gagal Mengirim | Error: ");
       Serial.println(httpResponseCode);
@@ -352,7 +400,7 @@ void kirimDataJSON(float s1, float s2, float s3, float kedalaman, float ph, floa
 }
 
 // ============================================================================
-// 9. MAIN SETUP & LOOP
+// 10. MAIN SETUP & SCHEDULED LOOP
 // ============================================================================
 
 void setup() {
@@ -360,12 +408,13 @@ void setup() {
   delay(1000);
 
   Serial.println("\n==================================================");
-  Serial.println(" SYSTEM MONITORING KUALITAS AIR - MODULAR CODE ");
+  Serial.println(" SYSTEM MONITORING KUALITAS AIR - FULL SKETCH ");
   Serial.println("==================================================");
 
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
   pinMode(DE_RE_PIN, OUTPUT);
+  pinMode(TOUCH_PIN, INPUT); // Mode Input Touch Sensor TTP223
   digitalWrite(DE_RE_PIN, LOW);
 
   Serial2.begin(9600, SERIAL_8N1, RX2_PIN, TX2_PIN);
@@ -376,15 +425,23 @@ void setup() {
     Serial.println("⚠️ Warning: ADS1115 Tidak Terdeteksi!");
   }
 
+  // Koneksi Awal Wi-Fi
   voidMaintainWiFi();
 
+  // Sinkronisasi Waktu NTP
   configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
   Serial.println("Menyesuaikan waktu via NTP...");
 }
 
 void loop() {
-  // Cek perintah uji coba via Serial Monitor setiap loop
+  // 1. Cek pemicu manual Touch Sensor (GPIO 13)
+  voidCekTouchSensor();
+
+  // 2. Cek perintah keyboard dari Serial Monitor
   voidUjiCobaSerial();
+
+  // 3. Pastikan koneksi Wi-Fi tetap aktif (Auto-Failover)
+  voidMaintainWiFi();
 
   struct tm timeinfo;
   if (!getLocalTime(&timeinfo)) {
@@ -395,9 +452,9 @@ void loop() {
   int menitSekarang = timeinfo.tm_min;
   int detikSekarang = timeinfo.tm_sec;
 
-  // Jadwal Pengiriman Otomatis (Menit :00 dan :30)
+  // 4. Jadwal Transmisi Otomatis di Menit :00 dan :30
   if ((menitSekarang == 0 && !sudahKirimMenit00) || (menitSekarang == 30 && !sudahKirimMenit30)) {
-    
+
     float suhu1, suhu2, suhu3, kedalaman, ph, doVal;
 
     if (modeManual) {
@@ -415,7 +472,7 @@ void loop() {
     }
 
     Serial.printf("\n[WAKTU REAL-TIME: %02d:%02d:%02d]\n", timeinfo.tm_hour, menitSekarang, detikSekarang);
-    kirimDataJSON(suhu1, suhu2, suhu3, kedalaman, ph, doVal);
+    kirimDataJSON(suhu1, suhu2, suhu3, kedalaman, ph, doVal, "SCHEDULED_30MIN");
 
     if (menitSekarang == 0)  sudahKirimMenit00 = true;
     if (menitSekarang == 30) sudahKirimMenit30 = true;
