@@ -53,28 +53,32 @@ async function fetchData() {
 
     if (Array.isArray(result) && result.length > 0) {
       rawDataSensor = result;
-      const latestData = result[result.length - 1];
 
-      updateLastUpdateTime(latestData.timestamp);
-      checkESP32Status(latestData);
-      updateSensorCards(latestData);
+      // 1. FILTER KHUSUS DATA SENSOR (abaikan elemen log web saja)
+      const sensorOnlyData = result.filter(item => !item.is_log_only && item.suhu1 !== undefined);
 
-      // Update Indeks Kualitas Air (0 - 100)
-      const ika = calculateWaterQualityIndex(latestData);
-      const valIka = document.getElementById("val-indeks-kualitas");
-      const statusBadge = document.getElementById("status-badge");
-      if (valIka) valIka.innerText = ika.score;
-      if (statusBadge) {
-        statusBadge.innerText = ika.status;
-        statusBadge.style.backgroundColor = ika.color;
+      if (sensorOnlyData.length > 0) {
+        const latestSensorData = sensorOnlyData[sensorOnlyData.length - 1];
+
+        updateLastUpdateTime(latestSensorData.timestamp);
+        updateSensorCards(latestSensorData); 
+
+        const ika = calculateWaterQualityIndex(latestSensorData);
+        const valIka = document.getElementById("val-indeks-kualitas");
+        const statusBadge = document.getElementById("status-badge");
+        if (valIka) valIka.innerText = ika.score;
+        if (statusBadge) {
+          statusBadge.innerText = ika.status;
+          statusBadge.style.backgroundColor = ika.color;
+        }
+
+        updateSystemRecommendation(latestSensorData);
       }
 
-      // Update Peringatan & Rekomendasi
-      updateSystemRecommendation(latestData);
-
-      // Update Grafik & Tabel Log Aktivitas
+      checkESP32Status(result);
       updateChartData(result);
       renderActivityHistory(result);
+
     } else {
       showEmptyState();
     }
@@ -115,15 +119,28 @@ function parseCustomDate(str) {
   return new Date(cleanStr);
 }
 
-function checkESP32Status(latestData) {
+function checkESP32Status(allData) {
   const txtStatus = document.getElementById('txt-status');
   const statusContainer = document.getElementById('connection-status');
-  if (!txtStatus || !statusContainer || !latestData) return;
+  if (!txtStatus || !statusContainer || !allData || allData.length === 0) return;
+
+  // Filter hanya data yang murni berasal dari sensor ESP32 (bukan log web saja)
+  const sensorOnlyData = allData.filter(item => !item.is_log_only && item.suhu1 !== undefined);
+
+  if (sensorOnlyData.length === 0) {
+    statusContainer.className = "status-pill offline";
+    txtStatus.innerText = "OFFLINE";
+    return;
+  }
+
+  // Ambil data sensor paling baru dari ESP32
+  const latestSensorData = sensorOnlyData[sensorOnlyData.length - 1];
 
   const now = new Date();
-  const lastDataTime = parseCustomDate(latestData.timestamp);
+  const lastDataTime = parseCustomDate(latestSensorData.timestamp);
   const diffInMinutes = Math.floor((now - lastDataTime) / (1000 * 60));
 
+  // Jika data sensor terakhir sudah lebih dari 35 menit lalu -> OFFLINE
   if (diffInMinutes <= 35) {
     statusContainer.className = "status-pill online";
     txtStatus.innerText = "ONLINE";
