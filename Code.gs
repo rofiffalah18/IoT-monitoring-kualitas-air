@@ -29,9 +29,20 @@ function doGet(e) {
   }
 
   // 2. Web Dashboard mengeset perintah baca saat tombol diklik
-  if (action === "setReadTrigger") {
+if (action === "setReadTrigger") {
     scriptProperties.setProperty("FLAG_READ_TRIGGER", "TRUE");
+    
+    // Catat riwayat bahwa tombol web baru saja diklik
+    logWebActivity("WEB_TRIGGER_SENT", "WEB_MANUAL_READ");
+
     return ContentService.createTextOutput(JSON.stringify({ status: "SUCCESS_FLAG_SET" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // Aksi baru: Catat Log jika ESP32 tidak merespons (Timeout/Offline)
+  if (action === "logWebTimeout") {
+    logWebActivity("ESP32_NO_RESPONSE_OFFLINE", "WEB_MANUAL_READ_FAILED");
+    return ContentService.createTextOutput(JSON.stringify({ status: "TIMEOUT_LOGGED" }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 

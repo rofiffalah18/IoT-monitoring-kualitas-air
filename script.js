@@ -542,31 +542,35 @@ async function triggerWebRead() {
   btn.disabled = true;
 
   try {
-    // 1. Simpan timestamp data terakhir sebelum perintah dikirim
     const oldLatestTimestamp = rawDataSensor.length > 0 ? rawDataSensor[rawDataSensor.length - 1].timestamp : "";
 
-    // 2. Set flag trigger di Google Apps Script
+    // 1. Set flag di server + otomatis catat log WEB_TRIGGER_SENT
     const response = await fetch(`${SCRIPT_URL}?action=setReadTrigger`);
     if (!response.ok) throw new Error("Gagal terhubung ke server.");
 
-    btn.innerText = "⏳ Menunggu Respon ESP32 (Polling 5s)...";
+    btn.innerText = "⏳ Menunggu Respon ESP32...";
 
-    // 3. Jeda 9 detik: memberi waktu ESP32 polling (5s) + kirim POST ke GS (4s)
+    // 2. Kunci tombol dengan cooldown 2 menit
+    startCooldown(btnId, storageKey, defaultText);
+
+    // 3. Cek respons setelah 10 detik
     setTimeout(async () => {
-      // Ambil data paling baru dari Spreadsheet
       await fetchData();
 
       const newLatestData = rawDataSensor.length > 0 ? rawDataSensor[rawDataSensor.length - 1] : null;
 
-      // Cek apakah ada data BARU yang masuk setelah tombol diklik
       if (newLatestData && newLatestData.timestamp !== oldLatestTimestamp) {
-        alert(`✅ SUKSES! ESP32 berhasil merespons perintah web.\nData real-time baru telah ditambahkan pada log (${newLatestData.timestamp}).`);
+        alert(`✅ SUKSES! ESP32 berhasil merespons perintah web.\nData real-time baru telah ditambahkan (${newLatestData.timestamp}).`);
       } else {
-        alert(`⚠️ PERINGATAN: Alat (ESP32) tidak merespons!\n\nPerintah telah dikirim ke server, tetapi tidak ada data baru yang masuk dari ESP32 dalam 9 detik. Pastikan fungsi voidCekWebTrigger() di ESP32 berjalan.`);
+        // Jika ESP32 tidak merespons, kirim sinyal ke GS untuk mencatat LOG GAGAL
+        fetch(`${SCRIPT_URL}?action=logWebTimeout`);
+        
+        alert(`⚠️ PERINGATAN: ESP32 Tidak Merespons / Offline!\n\nRiwayat percobaan ambil data telah dicatat ke Log Koneksi dengan status GAGAL.`);
+        
+        // Refresh tabel log agar riwayat gagal langsung tampil di tabel web
+        setTimeout(fetchData, 1500);
       }
-
-      startCooldown(btnId, storageKey, defaultText);
-    }, 9000);
+    }, 10000);
 
   } catch (err) {
     alert("Gagal memicu alat: " + err.message);
