@@ -388,11 +388,18 @@ function updateSingleChart(type) {
   const selectElem = document.getElementById(`filter-${type}`);
   const filterVal = selectElem ? selectElem.value : "today";
 
-  // 1. FILTER KHUSUS DATA SENSOR (Abaikan baris log web yang tidak punya angka)
+  // 1. Murni ambil data yang memiliki nilai sensor (abaikan log koneksi web)
   const sensorOnlyData = rawDataSensor.filter(item => !item.is_log_only && item.suhu1 !== undefined && !isNaN(item.suhu1));
 
-  // 2. Filter berdasarkan waktu (1h, today, 7d, 30d)
-  const rawFilteredData = filterDataByTime(sensorOnlyData, filterVal);
+  // 2. Filter berdasarkan waktu
+  let rawFilteredData = filterDataByTime(sensorOnlyData, filterVal);
+
+  // FALLBACK: Jika filter (misal "Hari Ini") kosong karena ESP32 offline,
+  // ambil 20 data sensor terakhir yang ada agar grafik tidak kosong total!
+  if (rawFilteredData.length === 0 && sensorOnlyData.length > 0) {
+    rawFilteredData = sensorOnlyData.slice(-20);
+  }
+
   const uniqueDataMap = new Map();
 
   rawFilteredData.forEach(item => {
@@ -416,7 +423,6 @@ function updateSingleChart(type) {
       timeKey = cleanStr;
     }
 
-    // Masukkan data valid ke Map
     uniqueDataMap.set(timeKey, {
       label: timeKey,
       suhu1: parseFloat(item.suhu1) || 0,
@@ -431,7 +437,7 @@ function updateSingleChart(type) {
   const finalProcessedData = Array.from(uniqueDataMap.values());
   const labels = finalProcessedData.map(d => d.label);
 
-  // 3. Render ke Chart.js
+  // 3. Render ulang ke Chart.js
   if (type === "suhu" && chartSuhu) {
     chartSuhu.data.labels = labels;
     chartSuhu.data.datasets[0].data = finalProcessedData.map(item => item.suhu1);
@@ -452,6 +458,7 @@ function updateSingleChart(type) {
     chartKedalaman.update();
   }
 }
+
 function filterDataByTime(data, filterValue) {
   if (!data || data.length === 0) return [];
   if (filterValue === "all") return data;
