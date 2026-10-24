@@ -295,6 +295,24 @@ function createMonthlyTrigger() {
     .create();
 }
 
+function logWebActivity(statusMsg, triggerType) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetLog = ss.getSheetByName("Log Koneksi"); // <-- Pastikan ejaan nama tab sama persis
+    if (!sheetLog) {
+      Logger.log("Sheet Log Koneksi tidak ditemukan!");
+      return;
+    }
+
+    const now = new Date();
+    const formattedTime = Utilities.formatDate(now, Session.getScriptTimeZone(), "yyyy-MM-dd HH:mm:ss");
+    
+    sheetLog.appendRow([formattedTime, "WEB_DASHBOARD", statusMsg, triggerType, "DASHBOARD_HTTP"]);
+  } catch (err) {
+    Logger.log("Gagal catat log web: " + err.toString());
+  }
+}
+
 // ==========================================
 // 6. GENERATOR DATA DUMMY
 // ==========================================
