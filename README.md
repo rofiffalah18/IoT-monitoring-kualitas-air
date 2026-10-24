@@ -103,52 +103,26 @@ Tabel di bawah ini mengintegrasikan seluruh titik penyambungan kabel, modul, pro
 ---
 
 ## 🚀 Alur Kerja Transmisi Data Sistem
-+-----------------------------------------------------------------+
-|                         SENSOR FISIK                            |
-|    3x DS18B20 (Suhu) | AJ-SR04M (Kedalaman) | pH | DO Remond    |
-+-----------------------------------------------------------------+
-                                │
-                                ▼
-+-----------------------------------------------------------------+
-|                    PENGONDISI SINYAL & PROTEKSI                 |
-|       ADS1115 (ADC I2C) | LLC (3.3V-5V) | MAX485 (RS485)          |
-+-----------------------------------------------------------------+
-                                │
-                                ▼
-+-----------------------------------------------------------------+
-|                        ESP32 DEV BOARD                          |
-+-----------------------------------------------------------------+
-                 │                               │
-                 ▼                               ▼
-     [ Pemicu Rutin / NTP ]           [ Pemicu Instan / On-Demand ]
-     - Jam :00 & :30                  - Touch Sensor (GPIO 13)
-                                      - Command Serial (KIRIM)
-                                      - Tombol Web Dashboard
-                 │                               │
-                 └───────────────┬───────────────┘
-                                 │
-                                 ▼
-+-----------------------------------------------------------------+
-|                   AUTO WI-FI FAILOVER ENGINE                    |
-|          Wi-Fi 1 (Home)  ─►  Wi-Fi 2 (Modem)  ─►  Wi-Fi 3 (GTC)  |
-+-----------------------------------------------------------------+
-                                 │
-                                 ▼
-+-----------------------------------------------------------------+
-|             GOOGLE APPS SCRIPT BACKEND (JSON POST)              |
-+-----------------------------------------------------------------+
-                 │                               │
-                 ▼                               ▼
-       [ Sheet: Data Feeder ]          [ Sheet: Log Koneksi ]
-                 │                               │
-                 └───────────────┬───────────────┘
-                                 │
-                                 ▼
-+-----------------------------------------------------------------+
-|                     DASHBOARD WEB RESPONSIVE                    |
-|      - Real-Time Sensor Cards & Indikator Kualitas Air          |
-|      - Trend Graphic (Chart.js) & Log Activity History          |
-+-----------------------------------------------------------------+
+## 🚀 Alur Kerja Transmisi Data Sistem
+
+```mermaid
+flowchart TD
+    A["<b>SENSOR FISIK</b><br>3x DS18B20 (Suhu) | AJ-SR04M | pH | DO Remond"] --> B["<b>PENGONDISI SINYAL & PROTEKSI</b><br>ADS1115 (ADC I2C) | LLC (3.3V-5V) | MAX485 (RS485)"]
+    B --> C["<b>ESP32 DEV BOARD</b>"]
+    
+    C --> D["<b>Pemicu Rutin / NTP</b><br>Jam :00 & :30"]
+    C --> E["<b>Pemicu Instan / On-Demand</b><br>Touch Sensor | Serial Command | Web Button"]
+    
+    D --> F["<b>AUTO WI-FI FAILOVER ENGINE</b><br>Wi-Fi 1 (Home) ➔ Wi-Fi 2 (Modem) ➔ Wi-Fi 3 (GTC)"]
+    E --> F
+    
+    F --> G["<b>GOOGLE APPS SCRIPT BACKEND</b><br>(JSON POST Data Transmisi)"]
+    
+    G --> H[("Sheet: Data Feeder")]
+    G --> I[("Sheet: Log Koneksi")]
+    
+    H --> J["<b>DASHBOARD WEB RESPONSIVE</b><br>Real-Time Cards | Chart.js Trend | Log History"]
+    I --> J
 
 ### 📝 Tahapan Transmisi Data:
 1. **Pengambilan Sampel:** ESP32 membaca 4 parameter fisik air (suhu 3 kedalaman, kedalaman air, pH, dan DO) via I2C, OneWire, dan RS485 Modbus RTU.
