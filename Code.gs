@@ -13,42 +13,36 @@ function doPost(e) {
   return handleIncomingData(e);
 }
 
-// Fungsi utama penulisan Log
+// Fungsi penulisan Log Aktivitas Web & Sistem
 function logWebActivity(statusMsg, triggerType) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     
-    // Cari sheet 'Log Koneksi', jika tidak ada cari sheet kedua
-    let sheetLog = ss.getSheetByName("Log Koneksi");
+    let sheetLog = ss.getSheetByName(SHEET_LOG);
     if (!sheetLog) {
-      sheetLog = ss.getSheets()[1]; // Fallback ke tab kedua
-    }
-
-    if (!sheetLog) {
-      Logger.log("ERROR: Sheet Log tidak ditemukan!");
-      return;
+      sheetLog = ss.insertSheet(SHEET_LOG);
+      sheetLog.appendRow(["Timestamp", "Jenis Aktivitas", "Status Log", "Detail Jaringan / Keterangan"]);
     }
 
     const now = new Date();
-    const formattedTime = Utilities.formatDate(now, "Asia/Jakarta", "yyyy-MM-dd HH:mm:ss");
+    const formattedTime = "'" + Utilities.formatDate(now, TIME_ZONE, "dd/MM/yyyy, HH:mm:ss");
     
-    // Tambah baris ke sheet
+    // Sesuaikan dengan 4 kolom di Log Koneksi:
+    // [Timestamp, Jenis Aktivitas (Trigger), Status Log, Detail Keterangan]
     sheetLog.appendRow([
       formattedTime, 
-      "WEB_DASHBOARD", 
-      statusMsg, 
       triggerType, 
-      "DASHBOARD_HTTP"
+      (statusMsg.includes("FAILED") || statusMsg.includes("OFFLINE")) ? "WARNING" : "SUCCESS", 
+      statusMsg
     ]);
 
-    SpreadsheetApp.flush(); // Paksa Google Sheets langsung menyimpan data
+    SpreadsheetApp.flush(); // Paksa Google Sheets langsung menyimpan data saat itu juga
   } catch (err) {
     Logger.log("Gagal append log: " + err.toString());
   }
 }
 
 function doGet(e) {
-  // Ambil parameter action dari URL
   const action = (e && e.parameter && e.parameter.action) ? e.parameter.action : "";
   const scriptProperties = PropertiesService.getScriptProperties();
 
@@ -62,20 +56,18 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // 2. Tombol Web Diklik (Set Flag + Catat Log Mandiri)
+  // 2. Tombol Web Diklik (Set Flag + Catat Log WEB_TRIGGER_SENT)
   if (action === "setReadTrigger") {
     scriptProperties.setProperty("FLAG_READ_TRIGGER", "TRUE");
-    
-    // LANGSUNG CATAT LOG SAAT TOMBOL DIKLIK
-    logWebActivity("WEB_TRIGGER_SENT", "WEB_MANUAL_READ");
+    logWebActivity("Permintaan Ambil Data dari Web Dashboard", "WEB_MANUAL_READ");
 
     return ContentService.createTextOutput(JSON.stringify({ status: "SUCCESS_FLAG_SET" }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // 3. Catat Log Saat ESP32 Gagal Respons / Timeout
+  // 3. Catat Log Saat ESP32 Gagal Respons / Timeout (Offline)
   if (action === "logWebTimeout") {
-    logWebActivity("ESP32_NO_RESPONSE_OFFLINE", "WEB_MANUAL_READ_FAILED");
+    logWebActivity("ESP32 Tidak Merespons / Offline (Timeout 10s)", "WEB_MANUAL_READ_FAILED");
 
     return ContentService.createTextOutput(JSON.stringify({ status: "TIMEOUT_LOGGED" }))
       .setMimeType(ContentService.MimeType.JSON);
@@ -85,7 +77,7 @@ function doGet(e) {
     return getWaterDataOneMonth();
   }
 
-  // Default: Ambil data dashboard
+  // Default: Ambil data gabungan untuk Dashboard Web
   return getDashboardData();
 }
 
@@ -194,40 +186,55 @@ function catatLogWebRead() {
 // ==========================================
 function getDashboardData() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_SENSOR);
-
-  if (!sheet) return createJsonResponse([]);
-
-  const data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return createJsonResponse([]);
+  const sheetSensor = ss.getSheetByName(SHEET_SENSOR);
+  const sheetLog = ss.getSheetByName(SHEET_LOG);
 
   const result = [];
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
 
-    let formattedTime = "";
-    if (row[0] instanceof Date) {
-      formattedTime = Utilities.formatDate(row[0], TIME_ZONE, "dd/MM/yyyy, HH:mm:ss");
-    } else {
-      formattedTime = row[0] ? row[0].toString().replace("'", "") : "";
+  // 1. Baca Data Sensor
+  if (sheetSensor) {
+    const dataSensor = sheetSensor.getDataRange().getValues();
+    for (let i = 1; i < dataSensor.length; i++) {
+      const row = dataSensor[i];
+      let formattedTime = (row[0] instanceof Date) 
+        ? Utilities.formatDate(row[0], TIME_ZONE, "dd/MM/yyyy, HH:mm:ss") 
+        : (row[0] ? row[0].toString().replace("'", "") : "");
+
+      result.push({
+        timestamp: formattedTime,
+        suhu1: parseFloat(row[1]) || 0,
+        suhu2: parseFloat(row[2]) || 0,
+        suhu3: parseFloat(row[3]) || 0,
+        do: parseFloat(row[4]) || 0,
+        ph: parseFloat(row[5]) || 0,
+        kedalaman: parseFloat(row[6]) || 0,
+        device_id: row[7] || "ESP32",
+        catatan: row[8] || "NORMAL",
+        trigger_type: "SCHEDULED_30MIN"
+      });
     }
+  }
 
-    result.push({
-      timestamp: formattedTime,
-      suhu1: parseFloat(row[1]) || 0,
-      suhu2: parseFloat(row[2]) || 0,
-      suhu3: parseFloat(row[3]) || 0,
-      do: parseFloat(row[4]) || 0,
-      ph: parseFloat(row[5]) || 0,
-      kedalaman: parseFloat(row[6]) || 0,
-      device_id: row[7] || "ESP32",
-      catatan: row[8] || "NORMAL"
-    });
+  // 2. Baca Data Log Koneksi
+  if (sheetLog) {
+    const dataLog = sheetLog.getDataRange().getValues();
+    for (let j = 1; j < dataLog.length; j++) {
+      const rowLog = dataLog[j];
+      let formattedTimeLog = (rowLog[0] instanceof Date) 
+        ? Utilities.formatDate(rowLog[0], TIME_ZONE, "dd/MM/yyyy, HH:mm:ss") 
+        : (rowLog[0] ? rowLog[0].toString().replace("'", "") : "");
+
+      result.push({
+        timestamp: formattedTimeLog,
+        trigger_type: rowLog[1] || "LOG_ACTIVITY",
+        catatan: rowLog[3] || rowLog[2] || "Log System",
+        is_log_only: true // Flag pembatas
+      });
+    }
   }
 
   return createJsonResponse(result);
 }
-
 function getWaterDataOneMonth() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_SENSOR);
   var data = sheet.getDataRange().getValues();
