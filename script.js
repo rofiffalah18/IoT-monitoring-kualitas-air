@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initCharts();
   fetchData();
   setupFilterListeners();
-  
+
   checkCooldownState('btnExport', 'cooldown_download', '📥 Download CSV');
   checkCooldownState('btnForceRead', 'cooldown_read', '🔄 Ambil Data Real-Time');
 
@@ -274,34 +274,35 @@ function updateSystemRecommendation(data) {
 // 7. CHART.JS DENGAN FORMAT TICKS & FILTER INTERVAL
 // ==========================================
 function initCharts() {
-const commonOptions = {
+  const commonOptions = {
     responsive: true,
     maintainAspectRatio: false,
     layout: {
       padding: {
-        left: 0,
-        right: 10,
-        top: 5,
-        bottom: 0
+        left: 10,   // Beri jarak di kiri agar angka sumbu Y tidak mepet
+        right: 15,  // Beri jarak di kanan agar grafik simetris di tengah
+        top: 10,
+        bottom: 5
       }
     },
-    plugins: { 
-      legend: { display: false } 
+    plugins: {
+      legend: { display: false }
     },
     scales: {
       x: {
         grid: { display: false },
         ticks: {
           autoSkip: true,
-          maxTicksLimit: 5,
+          maxTicksLimit: 6,
           maxRotation: 0,
           minRotation: 0,
+          padding: 5,
           font: {
             size: 10
           }
         }
       },
-      y: { 
+      y: {
         beginAtZero: false,
         ticks: {
           font: {
@@ -537,39 +538,25 @@ async function triggerWebRead() {
   if (isCoolingDown(storageKey)) return;
 
   const btn = document.getElementById(btnId);
-  btn.innerText = "⏳ Mengambil Data...";
+  btn.innerText = "⏳ Mengirim Perintah...";
   btn.disabled = true;
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 20000);
-
   try {
-    const response = await fetch(`${SCRIPT_URL}?action=read`, {
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
+    // 1. Set flag di Apps Script
+    const response = await fetch(`${SCRIPT_URL}?action=setReadTrigger`);
     if (!response.ok) throw new Error("Gagal terhubung ke server.");
 
-    const data = await response.json();
+    btn.innerText = "⏳ Menunggu Alat Merespons...";
 
-    if (!data || data.length === 0) {
-      alert("Belum ada data masuk di Spreadsheet!");
-      resetButtonImmediate(btnId, defaultText);
-      return;
-    }
-
-    fetchData();
-    alert("✅ Data terbaru berhasil diperbarui!");
-    startCooldown(btnId, storageKey, defaultText);
+    // 2. Tunggu 8 detik untuk memberi waktu ESP32 Polling & Mengirim Data Baru
+    setTimeout(async () => {
+      await fetchData();
+      alert("✅ Perintah berhasil dikirim! Data terbaru dari alat telah diperbarui.");
+      startCooldown(btnId, storageKey, defaultText);
+    }, 8000);
 
   } catch (err) {
-    clearTimeout(timeoutId);
-    if (err.name === 'AbortError') {
-      alert("⚠️ Waktu tunggu habis! Server Google Apps Script tidak merespons dalam 20 detik.");
-    } else {
-      alert("Gagal memperbarui data: " + err.message);
-    }
+    alert("Gagal memicu alat: " + err.message);
     resetButtonImmediate(btnId, defaultText);
   }
 }
@@ -592,7 +579,7 @@ async function downloadCSV() {
     const response = await fetch(`${SCRIPT_URL}?action=downloadCSV`, {
       signal: controller.signal
     });
-    
+
     clearTimeout(timeoutId);
     if (!response.ok) throw new Error("Gagal terhubung ke server Google Apps Script.");
 
@@ -621,7 +608,7 @@ async function downloadCSV() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     const monthYear = new Date().toISOString().slice(0, 7);
-    
+
     link.setAttribute("href", url);
     link.setAttribute("download", `Data_WaterMonitoring_${monthYear}.csv`);
     document.body.appendChild(link);
@@ -666,7 +653,7 @@ function checkCooldownState(buttonId, storageKey, defaultText) {
 
     if (remainingMs > 0) {
       btn.disabled = true;
-      
+
       const intervalId = setInterval(() => {
         const currentRemaining = parseInt(localStorage.getItem(storageKey)) - Date.now();
 
