@@ -555,50 +555,60 @@ tr:hover {
     padding: 8px 10px;
   }
 
-  .chart-card {
-    padding: 12px 10px !important;
-    overflow: hidden; /* Mencegah grafik melimpah keluar kartu */
+  .charts-grid {
+    grid-template-columns: 1fr !important;
+    gap: 15px !important;
   }
 
-  /* Rapikan header grafik agar judul dan dropdown menumpuk rapi secara vertikal */
-  .chart-header {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 8px !important;
+  /* Kartu grafik memanjang 100% lebar layar */
+  .chart-card {
     width: 100% !important;
+    padding: 16px 12px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Header tetap sejajar mendatar di HP */
+  .chart-header {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    margin-bottom: 12px !important;
   }
 
   .chart-header h3 {
-    font-size: 0.9rem !important;
-    white-space: normal !important; /* Izinkan teks judul terlipat jika layar sangat sempit */
+    font-size: 0.95rem !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
   }
 
+  /* Dropdown berukuran pas di sebelah kanan */
   .chart-header select {
-    width: 100% !important; /* Dropdown penuh selebar kartu di HP */
-    max-width: 100% !important;
-    font-size: 0.8rem !important;
+    width: auto !important;
+    font-size: 0.78rem !important;
+    padding: 6px 28px 6px 10px !important;
+    background-position: right 8px center !important;
   }
 
-  /* Pastikan wrapper kanvas grafik fleksibel 100% */
+  /* Container kanvas grafik yang lebar dan proporsional */
   .chart-wrapper {
     position: relative !important;
     width: 100% !important;
-    height: 200px !important; /* Tinggi yang pas untuk HP */
-    margin-top: 5px;
+    height: 230px !important; /* Tinggi ideal untuk landscape grafik HP */
   }
 
-  /* Ratakan legenda suhu agar tidak melimpah */
   .suhu-legend-container {
-    justify-content: flex-start !important;
+    justify-content: center !important;
     gap: 6px !important;
-    margin-bottom: 8px !important;
+    margin-bottom: 10px !important;
   }
 
   .legend-badge {
     font-size: 0.7rem !important;
-    padding: 3px 8px !important;
+    padding: 4px 8px !important;
   }
-
+  
   .table-header {
     flex-direction: column;
     align-items: flex-start;
