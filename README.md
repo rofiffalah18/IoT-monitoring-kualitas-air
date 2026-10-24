@@ -103,7 +103,6 @@ Tabel di bawah ini mengintegrasikan seluruh titik penyambungan kabel, modul, pro
 ---
 
 ## 🚀 Alur Kerja Transmisi Data Sistem
-## 🚀 Alur Kerja Transmisi Data Sistem
 
 ```mermaid
 flowchart TD
@@ -122,7 +121,8 @@ flowchart TD
     G --> I[("Sheet: Log Koneksi")]
     
     H --> J["<b>DASHBOARD WEB RESPONSIVE</b><br>Real-Time Cards | Chart.js Trend | Log History"]
-    I --> J ```
+    I --> J
+```
 
 ### 📝 Tahapan Transmisi Data:
 1. **Pengambilan Sampel:** ESP32 membaca 4 parameter fisik air (suhu 3 kedalaman, kedalaman air, pH, dan DO) via I2C, OneWire, dan RS485 Modbus RTU.
