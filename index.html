@@ -21,7 +21,7 @@
         <h1>🌊 Water Quality Monitoring System</h1>
         <p>Sistem Pemantauan Kualitas Air Kolam Real-Time (24 Jam)</p>
       </div>
-      <!-- Indikator Koneksi ESP32 (Heartbeat) -->
+      <!-- Indikator Koneksi ESP32 (Heartbeat) & Tombol Aksi Web -->
       <div class="header-status">
         <div class="status-info">
           <span id="connection-status" class="status-pill offline">
@@ -31,9 +31,15 @@
           <small id="last-update-time">Update Terakhir: -</small>
         </div>
         
-        <button id="btnExport" class="btn-download" onclick="downloadCSV()">
-          📥 Download CSV
-        </button>
+        <!-- Action Buttons di Header -->
+        <div class="header-actions" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 5px;">
+          <button id="btnForceRead" class="btn-refresh" onclick="triggerWebRead()">
+            🔄 Ambil Data Real-Time
+          </button>
+          <button id="btnExport" class="btn-download" onclick="downloadCSV()">
+            📥 Download CSV
+          </button>
+        </div>
       </div>
     </div>
   </header>
@@ -43,17 +49,19 @@
     <!-- RINGKASAN INDEKS KUALITAS AIR & ALERT UTAMA -->
     <section class="overview-section">
       <!-- Bagian Indeks Kualitas Air -->
-      <div class="card">
+      <div class="card index-card">
         <h3>Indeks Kualitas Air</h3>
-        <div class="index-value"><span id="val-ika">--</span> / 100</div>
-        <div id="status-badge" class="index-status">MEMUAT...</div>
+        <div class="index-display">
+          <span id="val-indeks-kualitas">--</span> <span class="index-scale">/ 100</span>
+        </div>
+        <div id="status-badge" class="index-status badge">MEMUAT...</div>
       </div>
 
       <!-- Bagian Peringatan & Rekomendasi -->
-      <div class="card">
+      <div class="card alert-card">
         <h3>⚠️ Peringatan & Rekomendasi Sistem</h3>
         <div id="alert-container">
-          <div class="alert-item">Menunggu sinkronisasi data sensor...</div>
+          <div class="alert-item info">Menunggu sinkronisasi data sensor...</div>
         </div>
       </div>
     </section>
@@ -104,7 +112,7 @@
           <h4>Oksigen Terlarut (DO)</h4>
         </div>
         <div class="sensor-value">
-          <span id="val-do">--</span> <small>ppm</small>
+          <span id="val-do">--</span> <small>mg/L</small>
         </div>
         <div class="sensor-status" id="status-do">Kondisi: -</div>
       </div>
@@ -128,14 +136,14 @@
           <h4>Kedalaman Air</h4>
         </div>
         <div class="sensor-value">
-          <span id="val-kedalaman">--</span> <small>m</small>
+          <span id="val-kedalaman">--</span> <small>cm</small>
         </div>
         <div class="sensor-status" id="status-kedalaman">Kondisi: -</div>
       </div>
 
     </section>
 
-    <!-- GRAFIK TREN 4 PARAMETER (FILTER PER TABEL) -->
+    <!-- GRAFIK TREN 4 PARAMETER -->
     <section class="chart-section">
       <div class="charts-grid">
 
@@ -170,7 +178,7 @@
         <!-- 2. Grafik DO -->
         <div class="card chart-card">
           <div class="chart-header">
-            <h3>🫧 Grafik DO (ppm)</h3>
+            <h3>🫧 Grafik DO (mg/L)</h3>
             <select id="filter-do" onchange="updateSingleChart('do')">
               <option value="1h">1 Jam Terakhir</option>
               <option value="today" selected>Hari Ini</option>
@@ -202,7 +210,7 @@
         <!-- 4. Grafik Kedalaman -->
         <div class="card chart-card">
           <div class="chart-header">
-            <h3>📏 Grafik Kedalaman Air (m)</h3>
+            <h3>📏 Grafik Kedalaman Air (cm)</h3>
             <select id="filter-kedalaman" onchange="updateSingleChart('kedalaman')">
               <option value="1h">1 Jam Terakhir</option>
               <option value="today" selected>Hari Ini</option>
@@ -219,9 +227,10 @@
     </section>
 
     <!-- TABEL LOG RIWAYAT AKTIVITAS & KONEKSI -->
-    <section class="history-section">
-      <div class="log-controls"
-        style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 12px;">
+    <section class="history-section card">
+      <div class="table-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+        <h3>📋 Riwayat Log & Aktivitas Sistem</h3>
+        
         <div class="pagination-controls" style="display: flex; gap: 8px; align-items: center;">
           <button id="btn-prev-log" onclick="prevLogPage()" class="btn-page">◀ Prev</button>
           <span id="log-page-info">Halaman 1 dari 1</span>
@@ -237,7 +246,7 @@
               <th>Waktu Transmisi</th>
               <th>Jenis Aktivitas</th>
               <th>Status Log</th>
-              <th>Keterangan / Pesan Masalah</th>
+              <th>Keterangan / Detail Jaringan</th>
             </tr>
           </thead>
           <tbody id="tbody-history">

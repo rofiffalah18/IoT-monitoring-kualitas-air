@@ -5,7 +5,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  font-family: "Plus Jakarta Sans", sans-serif;
+  font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 body {
@@ -16,7 +16,7 @@ body {
 }
 
 /* ==========================================
-   HEADER (GRADIENT PASTEL)
+   HEADER (GRADIENT PASTEL & ACTION BUTTONS)
    ========================================== */
 .header {
   background: #B5BAFF;
@@ -51,7 +51,61 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 10px;
+  gap: 8px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ==========================================
+   BUTTONS (DOWNLOAD CSV & REFRESH REAL-TIME)
+   ========================================== */
+.btn-download,
+.btn-refresh {
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-download {
+  background-color: #10B981;
+  color: #FFFFFF;
+}
+
+.btn-download:hover {
+  background-color: #059669;
+  transform: translateY(-1px);
+}
+
+.btn-refresh {
+  background-color: #3B82F6;
+  color: #FFFFFF;
+}
+
+.btn-refresh:hover {
+  background-color: #2563EB;
+  transform: translateY(-1px);
+}
+
+.btn-download:disabled,
+.btn-refresh:disabled {
+  background-color: #9CA3AF !important;
+  color: #F3F4F6 !important;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none;
 }
 
 /* ==========================================
@@ -72,7 +126,7 @@ body {
   border-radius: 20px;
   font-size: 0.85rem;
   font-weight: 600;
-  background-color: rgba(255, 255, 255, 0.4);
+  background-color: rgba(255, 255, 255, 0.5);
   color: #334155;
 }
 
@@ -83,7 +137,6 @@ body {
   display: inline-block;
 }
 
-/* Status Online / Offline */
 .status-pill.online {
   background-color: #dcfce7;
   color: #15803d;
@@ -102,29 +155,13 @@ body {
   background-color: #f43f5e;
 }
 
-/* Badges Status Indeks */
 .badge {
   display: inline-block;
-  padding: 4px 12px;
+  padding: 6px 14px;
   border-radius: 6px;
   font-size: 0.85rem;
   font-weight: 700;
   text-transform: uppercase;
-}
-
-.badge-success {
-  background-color: #dcfce7;
-  color: #15803d;
-}
-
-.badge-waspada {
-  background-color: #fef3c7;
-  color: #b45309;
-}
-
-.badge-danger {
-  background-color: #ffe4e6;
-  color: #be123c;
 }
 
 /* ==========================================
@@ -163,7 +200,7 @@ body {
 }
 
 .index-display {
-  margin: 15px 0;
+  margin: 10px 0;
 }
 
 #val-indeks-kualitas {
@@ -175,6 +212,7 @@ body {
 .index-scale {
   font-size: 1.2rem;
   color: #64748b;
+  font-weight: 600;
 }
 
 /* Alert Container */
@@ -221,7 +259,7 @@ body {
 }
 
 /* ==========================================
-   SENSOR GRID & DIVERSIFIKASI WARNA KARTU (BORDER GRADIENT)
+   SENSOR GRID & DIVERSIFIKASI WARNA KARTU
    ========================================== */
 .sensor-grid {
   display: grid;
@@ -236,8 +274,6 @@ body {
   border-radius: 12px;
   padding: 18px;
   transition: all 0.3s ease;
-
-  /* Properti dasar untuk border gradient */
   border: 3px solid transparent;
   background-origin: border-box;
   background-clip: padding-box, border-box;
@@ -274,88 +310,33 @@ body {
   color: #64748b;
 }
 
-/* Suhu Permukaan - Gradient Oranye */
+/* Color Gradients Sensor Cards */
 .card-suhu1 {
   background-image: linear-gradient(#fff, #fff), linear-gradient(135deg, #4ED7F1, #6FE6FC);
 }
 
-.card-suhu1 .sensor-header h4 {
-  color: #000;
-}
-
-.card-suhu1 .sensor-value {
-  color: #000;
-}
-
-/* Suhu Kolom - Gradient Koral */
 .card-suhu2 {
   background-image: linear-gradient(#fff, #fff), linear-gradient(135deg, #F29191, #F7ADAD);
 }
 
-.card-suhu2 .sensor-header h4 {
-  color: #000;
-}
-
-.card-suhu2 .sensor-value {
-  color: #000;
-}
-
-/* Suhu Dasar - Gradient Rose / Pink */
 .card-suhu3 {
-  background-color: transparent;
   background-image: linear-gradient(#fff, #fff), linear-gradient(135deg, #287A74, #5003C0);
 }
 
-.card-suhu3 .sensor-header h4 {
-  color: #000;
-}
-
-.card-suhu3 .sensor-value {
-  color: #000;
-}
-
-/* Oksigen Terlarut (DO) - Gradient Biru Cyan */
 .card-do {
   background-image: linear-gradient(#fff, #fff), linear-gradient(135deg, #D4621A, #D4621A);
 }
 
-.card-do .sensor-header h4 {
-  color: #000;
-}
-
-.card-do .sensor-value {
-  color: #000;
-}
-
-/* pH Air - Gradient Hijau Mint */
 .card-ph {
   background-image: linear-gradient(#fff, #fff), linear-gradient(135deg, #4ade80, #16a34a);
 }
 
-.card-ph .sensor-header h4 {
-  color: #000;
-}
-
-.card-ph .sensor-value {
-  color: #000;
-}
-
-/* Kedalaman Air - Gradient Ungu */
 .card-kedalaman {
   background-image: linear-gradient(#fff, #fff), linear-gradient(135deg, #c084fc, #9333ea);
 }
 
-.card-kedalaman .sensor-header h4 {
-  color: #000;
-}
-
-.card-kedalaman .sensor-value {
-  color: #000;
-}
-
-/* CLASS DINAMIS JIKA SENSOR ERROR / BERMASALAH (MERAH KEDIP) */
+/* DANGER STATE (PERINGATAN) */
 .card-sensor-danger {
-  background-color: rgba(234, 118, 209, 0.959);
   background-image: linear-gradient(#fff, #fff), linear-gradient(135deg, #fc0d0d, #ef4444) !important;
   animation: pulse-red 2s infinite;
 }
@@ -366,17 +347,9 @@ body {
 }
 
 @keyframes pulse-red {
-  0% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
-  }
-
-  70% {
-    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
-  }
-
-  100% {
-    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
-  }
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
 }
 
 /* ==========================================
@@ -419,7 +392,6 @@ body {
 .suhu-legend-container {
   display: flex;
   justify-content: center;
-  /* Mengubah dari flex-start ke center agar rata tengah di laptop */
   align-items: center;
   gap: 12px;
   margin-bottom: 15px;
@@ -443,52 +415,23 @@ body {
   display: inline-block;
 }
 
-/* Indikator Permukaan - Warna Oranye */
-.legend-permukaan {
-  background-color: #fff;
-  color: #6FE6FC;
-  border: 1px solid #6FE6FC;
-}
+.legend-permukaan { background-color: #fff; color: #6FE6FC; border: 1px solid #6FE6FC; }
+.legend-permukaan .legend-dot { background-color: #6FE6FC; }
 
-.legend-permukaan .legend-dot {
-  background-color: #6FE6FC;
-}
+.legend-tengah { background-color: #fff; color: #F7ADAD; border: 1px solid #F7ADAD; }
+.legend-tengah .legend-dot { background-color: #F7ADAD; }
 
-/* Indikator Tengah - Warna Koral */
-.legend-tengah {
-  background-color: #fff;
-  color: #F7ADAD;
-  border: 1px solid #F7ADAD;
-}
-
-.legend-tengah .legend-dot {
-  background-color: #F7ADAD;
-}
-
-/* Indikator Dasar - Warna Rose/Pink */
-.legend-dasar {
-  background-color: #fff;
-  color: #5003C0;
-  border: 1px solid #5003C0;
-}
-
-.legend-dasar .legend-dot {
-  background-color: #5003C0;
-}
+.legend-dasar { background-color: #fff; color: #5003C0; border: 1px solid #5003C0; }
+.legend-dasar .legend-dot { background-color: #5003C0; }
 
 /* ==========================================
-   TABLE SECTION
+   TABLE & PAGINATION SECTION
    ========================================== */
 .table-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 15px;
-}
-
-.log-count {
-  font-size: 0.8rem;
-  color: #64748b;
 }
 
 .table-responsive {
@@ -506,8 +449,7 @@ table {
   font-size: 0.88rem;
 }
 
-th,
-td {
+th, td {
   padding: 12px 15px;
   border-bottom: 1px solid #e2e8f0;
 }
@@ -522,41 +464,37 @@ tr:hover {
   background-color: #f8fafc;
 }
 
-.empty-log {
-  text-align: center;
-  color: #94a3b8;
-  padding: 20px;
-}
-
-.btn-download {
-  background-color: #10B981;
-  color: #FFFFFF;
-  padding: 12px 20px;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
+/* Control Buttons Paginasi */
+.btn-page {
+  background-color: #ffffff;
+  border: 1px solid #cbd5e1;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12px;
   font-weight: 600;
+  color: #334155;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
 }
 
-.btn-download:hover {
-  background-color: #059669;
-  transform: translateY(-1px);
+.btn-page:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
 }
 
-.btn-download:disabled {
-  background-color: #9CA3AF;
+.btn-page:disabled {
+  opacity: 0.5;
   cursor: not-allowed;
-  transform: none;
+}
+
+#log-page-info {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
 }
 
 /* ==========================================
-   RESPONSIVE LAYOUT UNTUK TAMPILAN HP
+   RESPONSIVE LAYOUT UNTUK HP (MOBILE)
    ========================================== */
 @media (max-width: 768px) {
   .header-container {
@@ -566,120 +504,44 @@ tr:hover {
     gap: 12px;
   }
 
-  .header-title {
-    text-align: center;
-    width: 100%;
-  }
-
-  .header-title h1 {
-    font-size: 1.4rem;
-  }
-
-  .header-title p {
-    font-size: 0.85rem;
-  }
+  .header-title h1 { font-size: 1.3rem; }
+  .header-title p { font-size: 0.8rem; }
 
   .header-status {
     width: 100%;
-    display: flex;
-    flex-direction: row-reverse;
-    justify-content: space-between;
     align-items: center;
   }
 
-  #last-update-time {
-    font-size: 0.75rem;
-    text-align: left;
+  .header-actions {
+    width: 100%;
+    justify-content: center;
   }
 
-  .status-pill {
-    padding: 5px 10px;
-    font-size: 0.75rem;
+  .btn-download,
+  .btn-refresh {
+    flex: 1;
+    justify-content: center;
+    font-size: 12px;
+    padding: 8px 10px;
   }
 
-  .overview-section {
-    grid-template-columns: 1fr;
-  }
-
+  .overview-section,
   .charts-grid {
     grid-template-columns: 1fr;
-  }
-
-  .chart-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .chart-header select {
-    width: 100%;
   }
 
   .chart-wrapper {
     height: 220px;
   }
 
-  .suhu-legend-container {
-    justify-content: center;
-    /* Tetap rata tengah secara rapi di HP */
-    gap: 8px;
-  }
-
-  .legend-badge {
-    font-size: 0.7rem;
-    padding: 4px 8px;
-  }
-
-  .card,
-  .chart-card,
-  .log-card {
-    padding: 12px 8px !important;
-    margin-bottom: 12px !important;
-  }
-
-  /* Atur tinggi & lebar kanvas Grafik */
-  .chart-container,
-  canvas {
-    width: 100% !important;
-    max-height: 220px !important;
-    /* Mencegah grafik terlalu tinggi di HP */
-  }
-
-  /* Rapikan Kontrol Paginasi Log */
-  .log-controls {
-    flex-direction: column !important;
-    align-items: flex-end !important;
-    gap: 6px;
-    margin-bottom: 8px;
+  .table-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
 
   .pagination-controls {
-    font-size: 11px;
-  }
-
-  .btn-page {
-    padding: 4px 8px !important;
-    font-size: 11px !important;
-  }
-
-  /* Rapikan Tabel Log */
-  table.log-table,
-  table {
-    font-size: 11px !important;
-    white-space: nowrap;
-    /* Mencegah baris terlipat jelek */
-  }
-
-  table th,
-  table td {
-    padding: 6px 8px !important;
-  }
-
-  .status-info {
-    justify-content: center;
-  }
-
-  .btn-download {
-    width: auto;
-    margin-top: 4px; /* Memberi jarak bersih di bawah span/text update */
+    width: 100%;
+    justify-content: space-between;
   }
 }
