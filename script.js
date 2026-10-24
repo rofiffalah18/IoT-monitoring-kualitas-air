@@ -3,8 +3,8 @@
 // ==========================================
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPcQ6YPapGf37XNUF3TofDkfkWLkMM5ibjBDk301uX7SRv-J9l-ipdxPVhnD2An4XlfQ/exec";
 
-const REFRESH_INTERVAL = 10000; // Auto-refresh background data tiap 10 detik
-const COOLDOWN_TIME_MS = 2 * 60 * 1000; // Cooldown tombol 2 Menit
+const REFRESH_INTERVAL = 10000;
+const COOLDOWN_TIME_MS = 2 * 60 * 1000;
 
 let rawDataSensor = [];
 let chartSuhu, chartDO, chartPH, chartKedalaman;
@@ -20,7 +20,6 @@ document.addEventListener("DOMContentLoaded", () => {
   fetchData();
   setupFilterListeners();
   
-  // Cek & Pulihkan status cooldown tombol dari localStorage jika halaman di-refresh
   checkCooldownState('btnExport', 'cooldown_download', '📥 Download CSV');
   checkCooldownState('btnForceRead', 'cooldown_read', '🔄 Ambil Data Real-Time');
 
@@ -277,11 +276,11 @@ function updateSystemRecommendation(data) {
 function initCharts() {
 const commonOptions = {
     responsive: true,
-    maintainAspectRatio: false, // Wajib false agar responsif mengikuti tinggi/lebar container
+    maintainAspectRatio: false,
     layout: {
       padding: {
         left: 0,
-        right: 10, // Beri jarak aman 10px di kanan agar titik data terakhir tidak terpotong
+        right: 10,
         top: 5,
         bottom: 0
       }
@@ -294,11 +293,11 @@ const commonOptions = {
         grid: { display: false },
         ticks: {
           autoSkip: true,
-          maxTicksLimit: 5, // Batasi 5 label saja di sumbu X khusus HP agar tidak berdesakan
+          maxTicksLimit: 5,
           maxRotation: 0,
           minRotation: 0,
           font: {
-            size: 10 // Ukuran teks sumbu X lebih kecil sedikit di mobile
+            size: 10
           }
         }
       },

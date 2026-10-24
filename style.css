@@ -184,7 +184,6 @@ body {
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
 }
 
-/* Overview Section */
 .overview-section {
   display: grid;
   grid-template-columns: 300px 1fr;
@@ -215,7 +214,6 @@ body {
   font-weight: 600;
 }
 
-/* Alert Container */
 .alert-card h3 {
   margin-bottom: 15px;
   color: #0f172a;
@@ -310,7 +308,6 @@ body {
   color: #64748b;
 }
 
-/* Color Gradients Sensor Cards */
 .card-suhu1 {
   background-image: linear-gradient(#fff, #fff), linear-gradient(135deg, #4ED7F1, #6FE6FC);
 }
@@ -335,7 +332,6 @@ body {
   background-image: linear-gradient(#fff, #fff), linear-gradient(135deg, #c084fc, #9333ea);
 }
 
-/* DANGER STATE (PERINGATAN) */
 .card-sensor-danger {
   background-image: linear-gradient(#fff, #fff), linear-gradient(135deg, #fc0d0d, #ef4444) !important;
   animation: pulse-red 2s infinite;
@@ -494,7 +490,6 @@ tr:hover {
   background-color: #f8fafc;
 }
 
-/* Control Buttons Paginasi */
 .btn-page {
   background-color: #ffffff;
   border: 1px solid #cbd5e1;
@@ -524,14 +519,22 @@ tr:hover {
 }
 
 /* ==========================================
-   RESPONSIVE LAYOUT UNTUK HP (MOBILE)
+   PERBAIKAN RESPONSIVE MOBILE (HP) UTUH
    ========================================== */
 @media (max-width: 768px) {
+  .main-content {
+    padding: 0 10px !important;
+    margin-top: 15px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
   .header-container {
     flex-direction: column;
     align-items: center;
     text-align: center;
     gap: 12px;
+    padding: 0 12px;
   }
 
   .header-title h1 { font-size: 1.3rem; }
@@ -555,61 +558,74 @@ tr:hover {
     padding: 8px 10px;
   }
 
+
+  .overview-section,
   .charts-grid {
     grid-template-columns: 1fr !important;
+    width: 100% !important;
     gap: 15px !important;
   }
 
-  /* Kartu grafik memanjang 100% lebar layar */
+  .card,
   .chart-card {
+    padding: 12px 10px !important;
     width: 100% !important;
-    padding: 16px 12px !important;
     box-sizing: border-box !important;
+    overflow: hidden !important; 
   }
 
-  /* Header tetap sejajar mendatar di HP */
+
   .chart-header {
     display: flex !important;
     flex-direction: row !important;
     justify-content: space-between !important;
     align-items: center !important;
     width: 100% !important;
-    margin-bottom: 12px !important;
+    gap: 8px !important;
+    margin-bottom: 10px !important;
   }
 
   .chart-header h3 {
-    font-size: 0.95rem !important;
-    margin: 0 !important;
+    font-size: 0.88rem !important;
     white-space: nowrap !important;
+    margin: 0 !important;
   }
 
-  /* Dropdown berukuran pas di sebelah kanan */
   .chart-header select {
     width: auto !important;
-    font-size: 0.78rem !important;
-    padding: 6px 28px 6px 10px !important;
-    background-position: right 8px center !important;
+    max-width: 110px !important;
+    font-size: 0.72rem !important;
+    padding: 5px 22px 5px 8px !important;
+    background-position: right 6px center !important;
   }
 
-  /* Container kanvas grafik yang lebar dan proporsional */
-  .chart-wrapper {
+.chart-wrapper {
     position: relative !important;
     width: 100% !important;
-    height: 230px !important; /* Tinggi ideal untuk landscape grafik HP */
+    height: 230px !important;
+    margin: 0 auto !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+  }
+
+  .chart-wrapper canvas {
+    width: 100% !important;
+    height: 100% !important;
   }
 
   .suhu-legend-container {
     justify-content: center !important;
     gap: 6px !important;
-    margin-bottom: 10px !important;
+    margin-bottom: 8px !important;
   }
 
   .legend-badge {
-    font-size: 0.7rem !important;
-    padding: 4px 8px !important;
+    font-size: 0.68rem !important;
+    padding: 3px 6px !important;
   }
-  
-  .table-header {
+
+   .table-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 10px;

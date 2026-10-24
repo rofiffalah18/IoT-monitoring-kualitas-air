@@ -7,7 +7,6 @@
   <title>Monitoring Kualitas Air Telaga Inspirasi</title>
   <link rel="icon"
     href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>">
-  <!-- Chart.js untuk visualisasi grafik -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -30,7 +29,7 @@
           </span>
           <small id="last-update-time">Update Terakhir: -</small>
         </div>
-        
+
         <!-- Action Buttons di Header -->
         <div class="header-actions" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 5px;">
           <button id="btnForceRead" class="btn-refresh" onclick="triggerWebRead()">
@@ -228,9 +227,10 @@
 
     <!-- TABEL LOG RIWAYAT AKTIVITAS & KONEKSI -->
     <section class="history-section card">
-      <div class="table-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+      <div class="table-header"
+        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
         <h3>📋 Riwayat Log & Aktivitas Sistem</h3>
-        
+
         <div class="pagination-controls" style="display: flex; gap: 8px; align-items: center;">
           <button id="btn-prev-log" onclick="prevLogPage()" class="btn-page">◀ Prev</button>
           <span id="log-page-info">Halaman 1 dari 1</span>
@@ -250,7 +250,6 @@
             </tr>
           </thead>
           <tbody id="tbody-history">
-            <!-- Diisi oleh script.js -->
           </tbody>
         </table>
       </div>
