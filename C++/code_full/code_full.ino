@@ -20,6 +20,8 @@ const char *serverURL = "https://script.google.com/macros/s/AKfycbzPcQ6YPapGf37X
 const char *ntpServer = "pool.ntp.org";
 const long gmtOffset_sec = 7 * 3600; // GMT+7 (WIB)
 const int daylightOffset_sec = 0;
+unsigned long lastPollingTime = 0;
+const unsigned long POLLING_INTERVAL = 120000;
 
 // KREDENSIAL 3 JARINGAN WI-FI
 // ----------------------------------------------------------------------------
@@ -459,9 +461,48 @@ void kirimDataJSON(float s1, float s2, float s3, float kedalaman, float ph, floa
 }
 
 // ============================================================================
-// 10. MAIN SETUP & SCHEDULED LOOP
+// 10. Trigger Button Web
 // ============================================================================
+void voidCekWebTrigger() {
+  if (WiFi.status() == WL_CONNECTED) {
+    HTTPClient http;
+    String checkURL = String(serverURL) + "?action=checkTrigger";
 
+    http.begin(checkURL);
+    http.setFollowRedirects(HTTPC_STRICT_FOLLOW_REDIRECTS);
+    int httpCode = http.GET();
+
+    if (httpCode == HTTP_CODE_OK) {
+      String payload = http.getString();
+      StaticJsonDocument<100> doc;
+      deserializeJson(doc, payload);
+
+      bool isTriggered = doc["trigger"] | false;
+
+      if (isTriggered) {
+        Serial.println("\n🌐 [WEB TRIGGER DETECTED] Mengambil & Mengirim data instan...");
+        
+        float s1, s2, s3, k, p, d;
+        if (modeManual) {
+          s1 = manual_s1; s2 = manual_s2; s3 = manual_s3;
+          k = manual_kedalaman; p = manual_ph; d = manual_do;
+        } else {
+          voidBacaSuhu(s1, s2, s3);
+          k = voidBacaKedalaman();
+          p = voidBacaPH();
+          d = voidBacaDORemond();
+        }
+
+        kirimDataJSON(s1, s2, s3, k, p, d, "WEB_MANUAL_READ");
+      }
+    }
+    http.end();
+  }
+}
+
+// ============================================================================
+// 11. MAIN SETUP & SCHEDULED LOOP
+// ============================================================================
 void setup()
 {
   Serial.begin(115200);
@@ -493,58 +534,49 @@ void setup()
   Serial.println("Menyesuaikan waktu via NTP...");
 }
 
-void loop()
-{
+void loop() {
+  // 1. Cek pemicu Touch Sensor (GPIO 13)
   voidCekTouchSensor();
+
+  // 2. Cek perintah keyboard dari Serial Monitor
   voidUjiCobaSerial();
+
+  // 3. HTTP Polling Pemicu dari Web Dashboard (Tiap 5 Detik)
+  if (millis() - lastPollingTime >= POLLING_INTERVAL) {
+    lastPollingTime = millis();
+    voidCekWebTrigger();
+  }
+
+  // 4. Maintenance Koneksi Wi-Fi
   voidMaintainWiFi();
 
+  // 5. Jadwal Transmisi Otomatis di Menit :00 dan :30 (NTP Timer)
   struct tm timeinfo;
-  if (!getLocalTime(&timeinfo))
-  {
-    delay(500);
-    return;
-  }
+  if (getLocalTime(&timeinfo)) {
+    int menitSekarang = timeinfo.tm_min;
 
-  int menitSekarang = timeinfo.tm_min;
-  int detikSekarang = timeinfo.tm_sec;
+    if ((menitSekarang == 0 && !sudahKirimMenit00) || (menitSekarang == 30 && !sudahKirimMenit30)) {
+      float suhu1, suhu2, suhu3, kedalaman, ph, doVal;
 
-  // Jadwal Transmisi Otomatis di Menit :00 dan :30
-  if ((menitSekarang == 0 && !sudahKirimMenit00) || (menitSekarang == 30 && !sudahKirimMenit30))
-  {
+      if (modeManual) {
+        suhu1 = manual_s1; suhu2 = manual_s2; suhu3 = manual_s3;
+        kedalaman = manual_kedalaman; ph = manual_ph; doVal = manual_do;
+      } else {
+        voidBacaSuhu(suhu1, suhu2, suhu3);
+        kedalaman = voidBacaKedalaman();
+        ph = voidBacaPH();
+        doVal = voidBacaDORemond();
+      }
 
-    float suhu1, suhu2, suhu3, kedalaman, ph, doVal;
+      kirimDataJSON(suhu1, suhu2, suhu3, kedalaman, ph, doVal, "SCHEDULED_30MIN");
 
-    if (modeManual)
-    {
-      suhu1 = manual_s1;
-      suhu2 = manual_s2;
-      suhu3 = manual_s3;
-      kedalaman = manual_kedalaman;
-      ph = manual_ph;
-      doVal = manual_do;
-    }
-    else
-    {
-      voidBacaSuhu(suhu1, suhu2, suhu3);
-      kedalaman = voidBacaKedalaman();
-      ph = voidBacaPH();
-      doVal = voidBacaDORemond();
+      if (menitSekarang == 0)  sudahKirimMenit00 = true;
+      if (menitSekarang == 30) sudahKirimMenit30 = true;
     }
 
-    Serial.printf("\n[WAKTU REAL-TIME: %02d:%02d:%02d]\n", timeinfo.tm_hour, menitSekarang, detikSekarang);
-    kirimDataJSON(suhu1, suhu2, suhu3, kedalaman, ph, doVal, "SCHEDULED_30MIN");
-
-    if (menitSekarang == 0)
-      sudahKirimMenit00 = true;
-    if (menitSekarang == 30)
-      sudahKirimMenit30 = true;
+    if (menitSekarang != 0)  sudahKirimMenit00 = false;
+    if (menitSekarang != 30) sudahKirimMenit30 = false;
   }
 
-  if (menitSekarang != 0)
-    sudahKirimMenit00 = false;
-  if (menitSekarang != 30)
-    sudahKirimMenit30 = false;
-
-  delay(500);
+  delay(200);
 }
