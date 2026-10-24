@@ -543,13 +543,16 @@ async function triggerWebRead() {
 
   try {
     const oldLatestTimestamp = rawDataSensor.length > 0 ? rawDataSensor[rawDataSensor.length - 1].timestamp : "";
-    const response = await fetch(`${SCRIPT_URL}?action=setReadTrigger`);
-    if (!response.ok) throw new Error("Gagal terhubung ke server.");
+
+    // 1. Kirim sinyal trigger ke GS
+    await fetch(`${SCRIPT_URL}?action=setReadTrigger`);
 
     btn.innerText = "⏳ Menunggu Respon ESP32...";
 
+    // 2. Kunci tombol selama 2 menit
     startCooldown(btnId, storageKey, defaultText);
 
+    // 3. Evaluasi respon setelah 10 detik
     setTimeout(async () => {
       await fetchData();
 
@@ -558,15 +561,21 @@ async function triggerWebRead() {
       if (newLatestData && newLatestData.timestamp !== oldLatestTimestamp) {
         alert(`✅ SUKSES! ESP32 berhasil merespons perintah web.\nData real-time baru telah ditambahkan (${newLatestData.timestamp}).`);
       } else {
+        // GAGAL: Panggil API catat log gagal secara eksplisit
+        btn.innerText = "⏳ Mencatat Log Gagal...";
+        
         try {
-          await fetch(`${SCRIPT_URL}?action=logWebTimeout`);
-        } catch (logErr) {
-          console.error("Gagal mengirim log timeout:", logErr);
+          await fetch(`${SCRIPT_URL}?action=logWebTimeout`, { mode: 'no-cors' });
+        } catch (e) {
+          console.log("Catat log timeout dikirim.");
         }
 
         alert(`⚠️ PERINGATAN: ESP32 Tidak Merespons / Offline!\n\nRiwayat percobaan ambil data telah dicatat ke Log Koneksi dengan status GAGAL.`);
         
-        await fetchData();
+        // Refresh ulang data agar log baru langsung ter-render di tabel web
+        setTimeout(async () => {
+          await fetchData();
+        }, 1500);
       }
     }, 10000);
 

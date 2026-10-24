@@ -14,44 +14,40 @@ function doPost(e) {
 }
 
 function doGet(e) {
-  const action = e.parameter.action;
+  const action = e ? e.parameter.action : "";
   const scriptProperties = PropertiesService.getScriptProperties();
 
-  // 1. ESP32 mengecek apakah ada perintah baca dari Web
+  // 1. ESP32 Polling Pemicu
   if (action === "checkTrigger") {
     const isTriggered = scriptProperties.getProperty("FLAG_READ_TRIGGER") === "TRUE";
     if (isTriggered) {
-      // Reset kembali flag agar tidak berulang terus-menerus
       scriptProperties.setProperty("FLAG_READ_TRIGGER", "FALSE");
     }
     return ContentService.createTextOutput(JSON.stringify({ trigger: isTriggered }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // 2. Web Dashboard mengeset perintah baca saat tombol diklik
-if (action === "setReadTrigger") {
+  // 2. Tombol Web Diklik
+  if (action === "setReadTrigger") {
     scriptProperties.setProperty("FLAG_READ_TRIGGER", "TRUE");
-    
-    // Catat riwayat bahwa tombol web baru saja diklik
     logWebActivity("WEB_TRIGGER_SENT", "WEB_MANUAL_READ");
 
     return ContentService.createTextOutput(JSON.stringify({ status: "SUCCESS_FLAG_SET" }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // Aksi baru: Catat Log jika ESP32 tidak merespons (Timeout/Offline)
+  // 3. Pemicu Timeout jika ESP32 Offline / Gagal Respons
   if (action === "logWebTimeout") {
     logWebActivity("ESP32_NO_RESPONSE_OFFLINE", "WEB_MANUAL_READ_FAILED");
+
     return ContentService.createTextOutput(JSON.stringify({ status: "TIMEOUT_LOGGED" }))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // 3. Aksi Download CSV 30 Hari
   if (action === "downloadCSV") {
     return getWaterDataOneMonth();
   }
 
-  // Default: Ambil data untuk Dashboard Web
   return getDashboardData();
 }
 
@@ -298,7 +294,7 @@ function createMonthlyTrigger() {
 function logWebActivity(statusMsg, triggerType) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheetLog = ss.getSheetByName("Log Koneksi"); // <-- Pastikan ejaan nama tab sama persis
+    const sheetLog = ss.getSheetByName(SHEET_LOG); // <-- Pastikan ejaan nama tab sama persis
     if (!sheetLog) {
       Logger.log("Sheet Log Koneksi tidak ditemukan!");
       return;
