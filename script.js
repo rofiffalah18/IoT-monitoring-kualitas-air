@@ -542,18 +542,31 @@ async function triggerWebRead() {
   btn.disabled = true;
 
   try {
-    // 1. Set flag di Apps Script
+    // 1. Simpan timestamp data terakhir sebelum perintah dikirim
+    const oldLatestTimestamp = rawDataSensor.length > 0 ? rawDataSensor[rawDataSensor.length - 1].timestamp : "";
+
+    // 2. Set flag trigger di Google Apps Script
     const response = await fetch(`${SCRIPT_URL}?action=setReadTrigger`);
     if (!response.ok) throw new Error("Gagal terhubung ke server.");
 
-    btn.innerText = "⏳ Menunggu Alat Merespons...";
+    btn.innerText = "⏳ Menunggu Respon ESP32 (Polling 5s)...";
 
-    // 2. Tunggu 8 detik untuk memberi waktu ESP32 Polling & Mengirim Data Baru
+    // 3. Jeda 9 detik: memberi waktu ESP32 polling (5s) + kirim POST ke GS (4s)
     setTimeout(async () => {
+      // Ambil data paling baru dari Spreadsheet
       await fetchData();
-      alert("✅ Perintah berhasil dikirim! Data terbaru dari alat telah diperbarui.");
+
+      const newLatestData = rawDataSensor.length > 0 ? rawDataSensor[rawDataSensor.length - 1] : null;
+
+      // Cek apakah ada data BARU yang masuk setelah tombol diklik
+      if (newLatestData && newLatestData.timestamp !== oldLatestTimestamp) {
+        alert(`✅ SUKSES! ESP32 berhasil merespons perintah web.\nData real-time baru telah ditambahkan pada log (${newLatestData.timestamp}).`);
+      } else {
+        alert(`⚠️ PERINGATAN: Alat (ESP32) tidak merespons!\n\nPerintah telah dikirim ke server, tetapi tidak ada data baru yang masuk dari ESP32 dalam 9 detik. Pastikan fungsi voidCekWebTrigger() di ESP32 berjalan.`);
+      }
+
       startCooldown(btnId, storageKey, defaultText);
-    }, 8000);
+    }, 9000);
 
   } catch (err) {
     alert("Gagal memicu alat: " + err.message);

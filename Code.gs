@@ -14,34 +14,33 @@ function doPost(e) {
 }
 
 function doGet(e) {
-  if (e && e.parameter) {
-    // 1. Action Ambil Data Real-Time / Read Dashboard
-    if (e.parameter.action === "read") {
-      catatLogWebRead(); // Catat pemicu tombol web ke LogKoneksi
-      return getDashboardData();
-    }
+  const action = e.parameter.action;
+  const scriptProperties = PropertiesService.getScriptProperties();
 
-    // 2. Action Download CSV (1 Bulan)
-    if (e.parameter.action === "downloadCSV") {
-      var data = getWaterDataOneMonth();
-      return ContentService.createTextOutput(JSON.stringify(data))
-        .setMimeType(ContentService.MimeType.JSON);
+  // 1. ESP32 mengecek apakah ada perintah baca dari Web
+  if (action === "checkTrigger") {
+    const isTriggered = scriptProperties.getProperty("FLAG_READ_TRIGGER") === "TRUE";
+    if (isTriggered) {
+      // Reset kembali flag agar tidak berulang terus-menerus
+      scriptProperties.setProperty("FLAG_READ_TRIGGER", "FALSE");
     }
-
-    // 3. Action Buat Data Dummy untuk Testing
-    if (e.parameter.action === "dummy") {
-      isiDataDummy();
-      return ContentService.createTextOutput("Data dummy berhasil dibuat!")
-        .setMimeType(ContentService.MimeType.TEXT);
-    }
-
-    // 4. Inbound Data via Query Parameter (GET fallback)
-    if (e.parameter.suhu1) {
-      return handleIncomingData(e);
-    }
+    return ContentService.createTextOutput(JSON.stringify({ trigger: isTriggered }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // Default Response
+  // 2. Web Dashboard mengeset perintah baca saat tombol diklik
+  if (action === "setReadTrigger") {
+    scriptProperties.setProperty("FLAG_READ_TRIGGER", "TRUE");
+    return ContentService.createTextOutput(JSON.stringify({ status: "SUCCESS_FLAG_SET" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // 3. Aksi Download CSV 30 Hari
+  if (action === "downloadCSV") {
+    return getWaterDataOneMonth();
+  }
+
+  // Default: Ambil data untuk Dashboard Web
   return getDashboardData();
 }
 
