@@ -267,19 +267,43 @@ function updateSystemRecommendation(data) {
 
   const warnings = [];
 
+  // 1. Peringatan Sensor Suhu Error / Terputus
   if (data.suhu1 === -127 || data.suhu2 === -127 || data.suhu3 === -127) {
-    warnings.push("⚠️ <b>Sensor Suhu Error:</b> Terjadi kendala pembacaan pada salah satu sensor DS18B20.");
-  }
-  if (data.do === -1 || data.do < 3.0) {
-    warnings.push(`🚨 <b>Oksigen Terlarut Kritis (${data.do} mg/L):</b> Potensi kematian ikan! Nyalakan kincir air/aerator.`);
-  }
-  if (data.ph === -1 || data.ph < 5.5 || data.ph > 8.5) {
-    warnings.push(`🚨 <b>pH Air Ekstrem (${data.ph}):</b> Lakukan pengapuran (jika asam) atau pergantian air.`);
-  }
-  if (data.kedalaman === -1 || data.kedalaman < 80.0) {
-    warnings.push(`⚠️ <b>Kedalaman Air Dangkal (${data.kedalaman} cm):</b> Tambahkan pasokan air ke kolam.`);
+    warnings.push("⚠️ <b>Sensor Suhu Error:</b> Terjadi kendala pembacaan/kabel terputus pada sensor DS18B20.");
+  } 
+  // Peringatan Suhu Panas Ekstrem (> 32.5°C)
+  else if (data.suhu1 > 32.5 || data.suhu2 > 32.5 || data.suhu3 > 32.5) {
+    warnings.push("🌡️ <b>Suhu Air Panas Ekstrem (> 32.5°C):</b> Potensi penurunan oksigen & pembusukan amonia! Tambahkan peneduh atau kocor air segar.");
+  } 
+  // Peringatan Suhu Dingin Ekstrem (< 25.0°C)
+  else if (data.suhu1 < 25.0 || data.suhu2 < 25.0 || data.suhu3 < 25.0) {
+    warnings.push("🥶 <b>Suhu Air Dingin (< 25.0°C):</b> Metabolisme & pencernaan ikan melambat. Kurangi porsi pemberian pakan.");
   }
 
+  // 2. Peringatan Oksigen Terlarut (DO)
+  if (data.do === -1) {
+    warnings.push("⚠️ <b>Sensor DO Error:</b> Gagal membaca data dari Modbus RS485 Remond.");
+  } else if (data.do < 3.0) {
+    warnings.push(`🚨 <b>Oksigen Terlarut Kritis (${data.do} mg/L):</b> Potensi kematian ikan! Nyalakan kincir air/aerator sekarang.`);
+  }
+
+  // 3. Peringatan pH Air
+  if (data.ph === -1) {
+    warnings.push("⚠️ <b>Sensor pH Error:</b> Gagal membaca data dari ADC ADS1115.");
+  } else if (data.ph < 5.5) {
+    warnings.push(`🚨 <b>pH Air Sangat Asam (${data.ph}):</b> Merusak jaringan insang! Lakukan pengapuran (Kapur Kalsit/Dolomit).`);
+  } else if (data.ph > 8.5) {
+    warnings.push(`🚨 <b>pH Air Sangat Basa (${data.ph}):</b> Racun Amonia meningkat pesat! Lakukan pergantian/penambahan air segar.`);
+  }
+
+  // 4. Peringatan Kedalaman Air
+  if (data.kedalaman === -1) {
+    warnings.push("⚠️ <b>Sensor Kedalaman Error:</b> Gagal membaca sinyal ultrasonik AJ-SR04M.");
+  } else if (data.kedalaman < 80.0) {
+    warnings.push(`⚠️ <b>Kedalaman Air Dangkal (${data.kedalaman} cm):</b> Tambahkan pasokan air ke dalam kolam.`);
+  }
+
+  // Render Tampilan ke Kotak Alert
   if (warnings.length === 0) {
     container.innerHTML = "<div class='alert-item success'>✅ Semua parameter kualitas air dalam kondisi normal dan aman.</div>";
   } else {
@@ -614,6 +638,7 @@ async function triggerWebRead() {
     resetButtonImmediate(btnId, defaultText);
   }
 }
+
 async function downloadCSV() {
   const btnId = 'btnExport';
   const storageKey = 'cooldown_download';
