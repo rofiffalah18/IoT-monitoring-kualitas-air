@@ -272,7 +272,7 @@ function updateSystemRecommendation(data) {
     warnings.push("⚠️ <b>Sensor Suhu Error:</b> Terjadi kendala pembacaan/kabel terputus pada sensor DS18B20.");
   } 
   // Peringatan Suhu Panas Ekstrem (> 32.5°C)
-  else if (data.suhu1 > 32.5 || data.suhu2 > 32.5 || data.suhu3 > 32.5) {
+  else if (data.suhu1 > 32.0 || data.suhu2 > 32.0 || data.suhu3 > 32.0) {
     warnings.push("🌡️ <b>Suhu Air Panas Ekstrem (> 32.5°C):</b> Potensi penurunan oksigen & pembusukan amonia! Tambahkan peneduh atau kocor air segar.");
   } 
   // Peringatan Suhu Dingin Ekstrem (< 25.0°C)
