@@ -267,27 +267,33 @@ function updateSystemRecommendation(data) {
 
   const warnings = [];
 
-  // 1. Peringatan Sensor Suhu Error / Terputus
+  // 1. HITUNG RATA-RATA SUHU (Abaikan sensor yang error -127)
+  const suhuList = [data.suhu1, data.suhu2, data.suhu3].filter(val => val !== -127 && val !== undefined && !isNaN(val));
+  
   if (data.suhu1 === -127 || data.suhu2 === -127 || data.suhu3 === -127) {
     warnings.push("⚠️ <b>Sensor Suhu Error:</b> Terjadi kendala pembacaan/kabel terputus pada sensor DS18B20.");
-  } 
-  // Peringatan Suhu Panas Ekstrem (> 32.5°C)
-  else if (data.suhu1 > 32.0 || data.suhu2 > 32.0 || data.suhu3 > 32.0) {
-    warnings.push("🌡️ <b>Suhu Air Panas Ekstrem (> 32.5°C):</b> Potensi penurunan oksigen & pembusukan amonia! Tambahkan peneduh atau kocor air segar.");
-  } 
-  // Peringatan Suhu Dingin Ekstrem (< 25.0°C)
-  else if (data.suhu1 < 25.0 || data.suhu2 < 25.0 || data.suhu3 < 25.0) {
-    warnings.push("🥶 <b>Suhu Air Dingin (< 25.0°C):</b> Metabolisme & pencernaan ikan melambat. Kurangi porsi pemberian pakan.");
   }
 
-  // 2. Peringatan Oksigen Terlarut (DO)
+  if (suhuList.length > 0) {
+    // Hitung rata-rata
+    const avgSuhu = suhuList.reduce((sum, val) => sum + val, 0) / suhuList.length;
+    const avgSuhuFormatted = avgSuhu.toFixed(3); // Format 3 desimal
+
+    if (avgSuhu > 32.0) {
+      warnings.push(`🌡️ <b>Rata-Rata Suhu Panas Ekstrem (${avgSuhuFormatted}°C):</b> Potensi penurunan oksigen & pembusukan amonia! Tambahkan peneduh atau kocor air segar.`);
+    } else if (avgSuhu < 25.0) {
+      warnings.push(`🥶 <b>Rata-Rata Suhu Dingin (${avgSuhuFormatted}°C):</b> Metabolisme & pencernaan ikan melambat. Kurangi porsi pemberian pakan.`);
+    }
+  }
+
+  // 2. PERINGATAN OKSIGEN TERLARUT / DO (Pengecekan Mandiri)
   if (data.do === -1) {
     warnings.push("⚠️ <b>Sensor DO Error:</b> Gagal membaca data dari Modbus RS485 Remond.");
   } else if (data.do < 3.0) {
     warnings.push(`🚨 <b>Oksigen Terlarut Kritis (${data.do} mg/L):</b> Potensi kematian ikan! Nyalakan kincir air/aerator sekarang.`);
   }
 
-  // 3. Peringatan pH Air
+  // 3. PERINGATAN pH AIR (Pengecekan Mandiri)
   if (data.ph === -1) {
     warnings.push("⚠️ <b>Sensor pH Error:</b> Gagal membaca data dari ADC ADS1115.");
   } else if (data.ph < 5.5) {
@@ -296,14 +302,14 @@ function updateSystemRecommendation(data) {
     warnings.push(`🚨 <b>pH Air Sangat Basa (${data.ph}):</b> Racun Amonia meningkat pesat! Lakukan pergantian/penambahan air segar.`);
   }
 
-  // 4. Peringatan Kedalaman Air
+  // 4. PERINGATAN KEDALAMAN AIR (Pengecekan Mandiri)
   if (data.kedalaman === -1) {
     warnings.push("⚠️ <b>Sensor Kedalaman Error:</b> Gagal membaca sinyal ultrasonik AJ-SR04M.");
   } else if (data.kedalaman < 80.0) {
     warnings.push(`⚠️ <b>Kedalaman Air Dangkal (${data.kedalaman} cm):</b> Tambahkan pasokan air ke dalam kolam.`);
   }
 
-  // Render Tampilan ke Kotak Alert
+  // RENDER SEMUA PERINGATAN YANG TERKUMPUL
   if (warnings.length === 0) {
     container.innerHTML = "<div class='alert-item success'>✅ Semua parameter kualitas air dalam kondisi normal dan aman.</div>";
   } else {
