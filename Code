@@ -1,10 +1,10 @@
 // ==========================================
 // KONFIGURASI GLOBAL & EMAIL PENERIMA
 // ==========================================
-const SHEET_SENSOR  = ""; 
-const SHEET_LOG     = "";  
-const TIME_ZONE     = ""; 
-const EMAIL_PENERIMA = ""; 
+const SHEET_SENSOR = "";
+const SHEET_LOG = "";
+const TIME_ZONE = "";
+const EMAIL_PENERIMA = "";
 
 // ==========================================
 // 1. ENDPOINT UTAMA (GET & POST)
@@ -17,7 +17,7 @@ function doPost(e) {
 function logWebActivity(statusMsg, triggerType) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
-    
+
     let sheetLog = ss.getSheetByName(SHEET_LOG);
     if (!sheetLog) {
       sheetLog = ss.insertSheet(SHEET_LOG);
@@ -26,13 +26,11 @@ function logWebActivity(statusMsg, triggerType) {
 
     const now = new Date();
     const formattedTime = "'" + Utilities.formatDate(now, TIME_ZONE, "dd/MM/yyyy, HH:mm:ss");
-    
-    // Sesuaikan dengan 4 kolom di Log Koneksi:
-    // [Timestamp, Jenis Aktivitas (Trigger), Status Log, Detail Keterangan]
+
     sheetLog.appendRow([
-      formattedTime, 
-      triggerType, 
-      (statusMsg.includes("FAILED") || statusMsg.includes("OFFLINE")) ? "WARNING" : "SUCCESS", 
+      formattedTime,
+      triggerType,
+      (statusMsg.includes("FAILED") || statusMsg.includes("OFFLINE")) ? "WARNING" : "SUCCESS",
       statusMsg
     ]);
 
@@ -56,10 +54,9 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
-  // 2. Tombol Web Diklik (Set Flag + Catat Log WEB_TRIGGER_SENT)
+
   if (action === "setReadTrigger") {
     scriptProperties.setProperty("FLAG_READ_TRIGGER", "TRUE");
-    logWebActivity("Permintaan Ambil Data dari Web Dashboard", "WEB_MANUAL_READ");
 
     return ContentService.createTextOutput(JSON.stringify({ status: "SUCCESS_FLAG_SET" }))
       .setMimeType(ContentService.MimeType.JSON);
@@ -118,18 +115,18 @@ function handleIncomingData(e) {
     const timestampStr = Utilities.formatDate(new Date(), TIME_ZONE, "dd/MM/yyyy, HH:mm:ss");
     const timestampFormatted = "'" + timestampStr;
 
-    const deviceId    = params.device_id || "ESP32_POND_MONITOR_01";
+    const deviceId = params.device_id || "ESP32_POND_MONITOR_01";
     const triggerType = params.trigger_type || "SCHEDULED_30MIN";
-    const wifiName    = params.wifi_name || "Wi-Fi 1"; // Wi-Fi 1 / Wi-Fi 2 / Wi-Fi 3
-    const statusLog   = params.status_log || "NORMAL";
+    const wifiName = params.wifi_name || "Wi-Fi 1"; // Wi-Fi 1 / Wi-Fi 2 / Wi-Fi 3
+    const statusLog = params.status_log || "NORMAL";
 
     // A. JIKA PAKET BERISI DATA SENSOR
     if (params.suhu1 !== undefined) {
-      const suhu1     = parseFloat(params.suhu1);
-      const suhu2     = parseFloat(params.suhu2);
-      const suhu3     = parseFloat(params.suhu3);
-      const doVal     = parseFloat(params.do);
-      const phVal     = parseFloat(params.ph);
+      const suhu1 = parseFloat(params.suhu1);
+      const suhu2 = parseFloat(params.suhu2);
+      const suhu3 = parseFloat(params.suhu3);
+      const doVal = parseFloat(params.do);
+      const phVal = parseFloat(params.ph);
       const kedalaman = parseFloat(params.kedalaman);
 
       // Simpan ke Sheet Data Feeder
@@ -140,7 +137,7 @@ function handleIncomingData(e) {
 
     // B. SIMPAN KE SHEET LOG KONEKSI
     var statusKoneksi = (statusLog === "NORMAL") ? "SUCCESS" : "WARNING";
-    var rincianPesan  = "Koneksi: " + wifiName + " | Status: " + statusLog;
+    var rincianPesan = "Koneksi: " + wifiName + " | Status: " + statusLog;
 
     if (triggerType === "RECONNECTED_WIFI" || triggerType === "SWITCHING_WIFI") {
       rincianPesan = "Peralihan Jaringan ke " + wifiName;
@@ -196,8 +193,8 @@ function getDashboardData() {
     const dataSensor = sheetSensor.getDataRange().getValues();
     for (let i = 1; i < dataSensor.length; i++) {
       const row = dataSensor[i];
-      let formattedTime = (row[0] instanceof Date) 
-        ? Utilities.formatDate(row[0], TIME_ZONE, "dd/MM/yyyy, HH:mm:ss") 
+      let formattedTime = (row[0] instanceof Date)
+        ? Utilities.formatDate(row[0], TIME_ZONE, "dd/MM/yyyy, HH:mm:ss")
         : (row[0] ? row[0].toString().replace("'", "") : "");
 
       result.push({
@@ -220,8 +217,8 @@ function getDashboardData() {
     const dataLog = sheetLog.getDataRange().getValues();
     for (let j = 1; j < dataLog.length; j++) {
       const rowLog = dataLog[j];
-      let formattedTimeLog = (rowLog[0] instanceof Date) 
-        ? Utilities.formatDate(rowLog[0], TIME_ZONE, "dd/MM/yyyy, HH:mm:ss") 
+      let formattedTimeLog = (rowLog[0] instanceof Date)
+        ? Utilities.formatDate(rowLog[0], TIME_ZONE, "dd/MM/yyyy, HH:mm:ss")
         : (rowLog[0] ? rowLog[0].toString().replace("'", "") : "");
 
       result.push({
@@ -287,7 +284,7 @@ function autoSendMonthlyReportAndReset() {
 
   for (var i = 1; i < data.length; i++) {
     var row = data[i];
-    var formattedRow = row.map(function(item) {
+    var formattedRow = row.map(function (item) {
       if (item instanceof Date) {
         return Utilities.formatDate(item, TIME_ZONE, "yyyy-MM-dd HH:mm:ss");
       }
@@ -299,12 +296,12 @@ function autoSendMonthlyReportAndReset() {
   var lastMonthDate = new Date();
   lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
   var periodName = Utilities.formatDate(lastMonthDate, TIME_ZONE, "yyyy-MM");
-  
+
   var blob = Utilities.newBlob(csvContent, "text/csv", "Laporan_KualitasAir_" + periodName + ".csv");
 
   var subject = "📊 [AUTOREPORT] Laporan Bulanan Kualitas Air - Periode " + periodName;
   var body = "Halo Admin,\n\nTerlampir laporan data monitoring kualitas air bulanan untuk periode " + periodName + " sebelum sistem melakukan reset data.\n\nSalam,\nESP32 Water Quality Monitoring System";
-  
+
   MailApp.sendEmail(EMAIL_PENERIMA, subject, body, {
     attachments: [blob]
   });
@@ -342,7 +339,7 @@ function createMonthlyTrigger() {
 function isiDataDummy() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheetSensor = ss.getSheetByName(SHEET_SENSOR);
-  let sheetLog    = ss.getSheetByName(SHEET_LOG);
+  let sheetLog = ss.getSheetByName(SHEET_LOG);
 
   const now = new Date();
   const formattedTime = "'" + Utilities.formatDate(now, TIME_ZONE, "dd/MM/yyyy, HH:mm:ss");
