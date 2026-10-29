@@ -632,7 +632,7 @@ async function triggerWebRead() {
           console.error("Gagal kirim log timeout:", errLog);
         }
 
-        alert(`⚠️ PERINGATAN: ESP32 Tidak Merespons / Offline!\n\nRiwayat percobaan telah dicatat ke Log Koneksi dengan status FAGAL.`);
+        alert(`⚠️ PERINGATAN: ESP32 Tidak Merespons / Offline!\n\nRiwayat percobaan telah dicatat ke Log Koneksi dengan status GAGAL.`);
         
         // Refresh ulang data agar log FAILED langsung muncul di tabel web
         setTimeout(fetchData, 1000);
