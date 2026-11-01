@@ -168,12 +168,12 @@ function updateSensorCards(data) {
   setElementText("val-ph", data.ph === -1 ? "ERR" : data.ph);
   setElementText("val-kedalaman", data.kedalaman === -1 ? "ERR" : data.kedalaman);
 
-  const isSuhu1Danger = data.suhu1 === -127 || data.suhu1 < 25.0 || data.suhu1 > 32.0;
-  const isSuhu2Danger = data.suhu2 === -127 || data.suhu2 < 25.0 || data.suhu2 > 32.0;
-  const isSuhu3Danger = data.suhu3 === -127 || data.suhu3 < 25.0 || data.suhu3 > 32.0;
+  const isSuhu1Danger = data.suhu1 === -127 || data.suhu1 < 10.0 || data.suhu1 > 40.0;
+  const isSuhu2Danger = data.suhu2 === -127 || data.suhu2 < 10.0 || data.suhu2 > 40.0;
+  const isSuhu3Danger = data.suhu3 === -127 || data.suhu3 < 10.0 || data.suhu3 > 40.0;
   const isDODanger = data.do === -1 || data.do < 3.0;
   const isPHDanger = data.ph === -1 || data.ph < 5.5 || data.ph > 8.5;
-  const isKedalamanDanger = data.kedalaman === -1 || data.kedalaman < 80.0;
+  const isKedalamanDanger = data.kedalaman === -1 || data.kedalaman < 1.0;
 
   setConditionText("status-suhu1", isSuhu1Danger ? "Bahaya / Anomali" : "Normal");
   setConditionText("status-suhu2", isSuhu2Danger ? "Bahaya / Anomali" : "Normal");
@@ -231,11 +231,11 @@ function calculateWaterQualityIndex(data) {
 
   if (data.ph === -1 || data.ph < 5.5 || data.ph > 8.5) {
     totalPenalty += 25;
-  } else if (data.ph < 6.5 || data.ph > 7.8) {
+  } else if (data.ph < 6.0 || data.ph > 8.0) {
     totalPenalty += 15;
   }
 
-  if (data.kedalaman === -1 || data.kedalaman < 80.0) totalPenalty += 15;
+  if (data.kedalaman === -1 || data.kedalaman < 10.0) totalPenalty += 15;
 
   const finalScore = Math.max(0, 100 - totalPenalty);
 
