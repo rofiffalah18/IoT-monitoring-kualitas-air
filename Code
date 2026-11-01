@@ -301,6 +301,25 @@ function autoSendMonthlyReportAndReset() {
 
   var subject = "📊 [AUTOREPORT] Laporan Bulanan Kualitas Air - Periode " + periodName;
   var body = "Halo Admin,\n\nTerlampir laporan data monitoring kualitas air bulanan untuk periode " + periodName + " sebelum sistem melakukan reset data.\n\nSalam,\nESP32 Water Quality Monitoring System";
+  htmlBody: `
+          <div style="font-family: Arial, sans-serif; color: #333333; max-width: 600px; line-height: 1.6; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px;">
+            <h2 style="color: #0284c7; margin-top: 0;">🌊 Laporan Bulanan Kualitas Air Kolam</h2>
+            <p>Halo <b>Admin</b>,</p>
+            <p>Berikut terlampir rekapitulasi data hasil pemantauan kualitas air kolam selama 1 bulan terakhir (Periode <b>${namaBulan}</b>).</p>
+            
+            <div style="background-color: #f0f9ff; border-left: 4px solid #0284c7; padding: 12px; margin: 15px 0; border-radius: 4px;">
+              ℹ️ <b>Status Sistem:</b> Data pada sheet <i>Data Feeder</i> dan <i>Log Koneksi</i> telah otomatis di-reset untuk memasuki siklus pemantauan bulan baru.
+            </div>
+
+            <p>Lampiran file CSV dapat diunduh dan dibuka melalui Microsoft Excel, Google Sheets, atau aplikasi pengolah data lainnya.</p>
+            
+            <hr style="border: none; border-top: 1px solid #eeeeee; margin: 20px 0;" />
+            <p style="font-size: 0.85em; color: #666666; margin-bottom: 0;">
+              Salam hangat,<br>
+              <b>System IoT Pond Monitoring</b>
+            </p>
+          </div>
+        `,
 
   MailApp.sendEmail(EMAIL_PENERIMA, subject, body, {
     attachments: [blob]

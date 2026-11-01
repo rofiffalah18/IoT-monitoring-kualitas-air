@@ -172,7 +172,7 @@ function updateSensorCards(data) {
   const isSuhu2Danger = data.suhu2 === -127 || data.suhu2 < 10.0 || data.suhu2 > 40.0;
   const isSuhu3Danger = data.suhu3 === -127 || data.suhu3 < 10.0 || data.suhu3 > 40.0;
   const isDODanger = data.do === -1 || data.do < 3.0;
-  const isPHDanger = data.ph === -1 || data.ph < 5.5 || data.ph > 8.5;
+  const isPHDanger = data.ph === -1 || data.ph < 6.0 || data.ph > 8.5;
   const isKedalamanDanger = data.kedalaman === -1 || data.kedalaman < 1.0;
 
   setConditionText("status-suhu1", isSuhu1Danger ? "Bahaya / Anomali" : "Normal");
@@ -229,7 +229,7 @@ function calculateWaterQualityIndex(data) {
     totalPenalty += 15;
   }
 
-  if (data.ph === -1 || data.ph < 5.5 || data.ph > 8.5) {
+  if (data.ph === -1 || data.ph < 6.0 || data.ph > 8.5) {
     totalPenalty += 25;
   } else if (data.ph < 6.0 || data.ph > 8.0) {
     totalPenalty += 15;
@@ -290,23 +290,24 @@ function updateSystemRecommendation(data) {
   if (data.do === -1) {
     warnings.push("⚠️ <b>Sensor DO Error:</b> Gagal membaca data dari Modbus RS485 Remond.");
   } else if (data.do < 3.0) {
-    warnings.push(`🚨 <b>Oksigen Terlarut Kritis (${data.do} mg/L):</b> Potensi kematian ikan! Nyalakan kincir air/aerator sekarang.`);
+    warnings.push(`🚨 <b>Oksigen Terlarut Kritis (${Number(data.do).toFixed(2)} mg/L):</b> Potensi kematian ikan! Nyalakan kincir air/aerator sekarang.`);
   }
+
 
   // 3. PERINGATAN pH AIR (Pengecekan Mandiri)
   if (data.ph === -1) {
     warnings.push("⚠️ <b>Sensor pH Error:</b> Gagal membaca data dari ADC ADS1115.");
-  } else if (data.ph < 5.5) {
-    warnings.push(`🚨 <b>pH Air Sangat Asam (${data.ph}):</b> Merusak jaringan insang! Lakukan pengapuran (Kapur Kalsit/Dolomit).`);
+  } else if (data.ph < 6.0) {
+    warnings.push(`🚨 <b>pH Air Sangat Asam (${Number(data.ph).toFixed(2)}):</b> Merusak jaringan insang! Lakukan pengapuran (Kapur Kalsit/Dolomit).`);
   } else if (data.ph > 8.5) {
-    warnings.push(`🚨 <b>pH Air Sangat Basa (${data.ph}):</b> Racun Amonia meningkat pesat! Lakukan pergantian/penambahan air segar.`);
+    warnings.push(`🚨 <b>pH Air Sangat Basa (${Number(data.ph).toFixed(2)}):</b> Racun Amonia meningkat pesat! Lakukan pergantian/penambahan air segar.`);
   }
 
   // 4. PERINGATAN KEDALAMAN AIR (Pengecekan Mandiri)
   if (data.kedalaman === -1) {
     warnings.push("⚠️ <b>Sensor Kedalaman Error:</b> Gagal membaca sinyal ultrasonik AJ-SR04M.");
-  } else if (data.kedalaman < 80.0) {
-    warnings.push(`⚠️ <b>Kedalaman Air Dangkal (${data.kedalaman} cm):</b> Tambahkan pasokan air ke dalam kolam.`);
+  } else if (data.kedalaman < 10.0) {
+    warnings.push(`⚠️ <b>Kedalaman Air Dangkal (${Number(data.kedalaman).toFixed(2)} cm):</b> Tambahkan pasokan air ke dalam kolam.`);
   }
 
   // RENDER SEMUA PERINGATAN YANG TERKUMPUL
