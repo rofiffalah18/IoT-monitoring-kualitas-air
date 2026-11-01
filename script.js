@@ -4,7 +4,7 @@
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPcQ6YPapGf37XNUF3TofDkfkWLkMM5ibjBDk301uX7SRv-J9l-ipdxPVhnD2An4XlfQ/exec";
 
 const REFRESH_INTERVAL = 10000;
-const COOLDOWN_TIME_MS = 2 * 60 * 1000;
+const COOLDOWN_TIME_MS = 30 * 1000;
 
 let rawDataSensor = [];
 let chartSuhu, chartDO, chartPH, chartKedalaman;
