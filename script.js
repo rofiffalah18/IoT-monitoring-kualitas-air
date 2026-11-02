@@ -638,7 +638,7 @@ async function triggerWebRead() {
         // Refresh ulang data agar log FAILED langsung muncul di tabel web
         setTimeout(fetchData, 1000);
       }
-    }, 10000);
+    }, 15000);
 
   } catch (err) {
     alert("Gagal memicu alat: " + err.message);
