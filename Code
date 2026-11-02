@@ -1,10 +1,10 @@
 // ==========================================
 // KONFIGURASI GLOBAL & EMAIL PENERIMA
 // ==========================================
-const SHEET_SENSOR = "";
-const SHEET_LOG = "";
-const TIME_ZONE = "";
-const EMAIL_PENERIMA = "";
+const SHEET_SENSOR = "";   // Tab data sensor utama
+const SHEET_LOG = "";   // Tab log aktivitas koneksi
+const TIME_ZONE = "Asia/Jakarta";  // WIB (GMT+7)
+const EMAIL_PENERIMA = ""; 
 
 // ==========================================
 // 1. ENDPOINT UTAMA (GET & POST)
@@ -13,30 +13,40 @@ function doPost(e) {
   return handleIncomingData(e);
 }
 
-// Fungsi penulisan Log Aktivitas Web & Sistem
 function logWebActivity(statusMsg, triggerType) {
   try {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
 
     let sheetLog = ss.getSheetByName(SHEET_LOG);
     if (!sheetLog) {
-      sheetLog = ss.insertSheet(SHEET_LOG);
-      sheetLog.appendRow(["Timestamp", "Jenis Aktivitas", "Status Log", "Detail Jaringan / Keterangan"]);
+      sheetLog = ss.getSheets()[1];
+    }
+
+    if (!sheetLog) {
+      Logger.log("ERROR: Sheet Log tidak ditemukan!");
+      return;
     }
 
     const now = new Date();
-    const formattedTime = "'" + Utilities.formatDate(now, TIME_ZONE, "dd/MM/yyyy, HH:mm:ss");
+    const formattedTime = Utilities.formatDate(now, "Asia/Jakarta", "yyyy-MM-dd HH:mm:ss");
 
-    sheetLog.appendRow([
-      formattedTime,
-      triggerType,
-      (statusMsg.includes("FAILED") || statusMsg.includes("OFFLINE")) ? "WARNING" : "SUCCESS",
-      statusMsg
-    ]);
+    // Cari baris terakhir yang berisi data aktual
+    const lastRow = sheetLog.getLastRow() + 1;
 
-    SpreadsheetApp.flush(); // Paksa Google Sheets langsung menyimpan data saat itu juga
+    // Sesuaikan urutan dengan header sheet kamu (Timestamp | Status Perangkat | Status ESP | Keterangan)
+    const rowData = [
+      formattedTime,     // Kolom A: Timestamp
+      triggerType,       // Kolom B: Status Perangkat (misal: WEB_MANUAL_READ)
+      (statusMsg.includes("FAILED") || statusMsg.includes("OFFLINE")) ? "FAILED" : "SUCCESS", // Kolom C: Status ESP
+      statusMsg          // Kolom D: Keterangan
+    ];
+
+    // Tulis paksa tepat di baris kosong berikutnya
+    sheetLog.getRange(lastRow, 1, 1, rowData.length).setValues([rowData]);
+
+    SpreadsheetApp.flush(); // Simpan detik itu juga
   } catch (err) {
-    Logger.log("Gagal append log: " + err.toString());
+    Logger.log("Gagal catat log: " + err.toString());
   }
 }
 
@@ -53,7 +63,6 @@ function doGet(e) {
     return ContentService.createTextOutput(JSON.stringify({ trigger: isTriggered }))
       .setMimeType(ContentService.MimeType.JSON);
   }
-
 
   if (action === "setReadTrigger") {
     scriptProperties.setProperty("FLAG_READ_TRIGGER", "TRUE");
@@ -122,14 +131,13 @@ function handleIncomingData(e) {
 
     // A. JIKA PAKET BERISI DATA SENSOR
     if (params.suhu1 !== undefined) {
-      const suhu1 = parseFloat(params.suhu1);
-      const suhu2 = parseFloat(params.suhu2);
-      const suhu3 = parseFloat(params.suhu3);
-      const doVal = parseFloat(params.do);
-      const phVal = parseFloat(params.ph);
-      const kedalaman = parseFloat(params.kedalaman);
+      const suhu1 = (parseFloat(params.suhu1) === -127 || parseFloat(params.suhu1) === -1) ? -1 : parseFloat(parseFloat(params.suhu1).toFixed(3));
+      const suhu2 = (parseFloat(params.suhu2) === -127 || parseFloat(params.suhu2) === -1) ? -1 : parseFloat(parseFloat(params.suhu2).toFixed(3));
+      const suhu3 = (parseFloat(params.suhu3) === -127 || parseFloat(params.suhu3) === -1) ? -1 : parseFloat(parseFloat(params.suhu3).toFixed(3));
+      const doVal = (parseFloat(params.do) === -1) ? -1 : parseFloat(parseFloat(params.do).toFixed(2));
+      const phVal = (parseFloat(params.ph) === -1) ? -1 : parseFloat(parseFloat(params.ph).toFixed(2));
+      const kedalaman = (parseFloat(params.kedalaman) === -1) ? -1 : parseFloat(parseFloat(params.kedalaman).toFixed(2));
 
-      // Simpan ke Sheet Data Feeder
       sheetSensor.appendRow([
         timestampFormatted, suhu1, suhu2, suhu3, doVal, phVal, kedalaman, deviceId, statusLog
       ]);
@@ -232,11 +240,13 @@ function getDashboardData() {
 
   return createJsonResponse(result);
 }
+
 function getWaterDataOneMonth() {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_SENSOR);
-  var data = sheet.getDataRange().getValues();
+  if (!sheet) return createJsonResponse([]);
 
-  if (data.length <= 1) return [];
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return createJsonResponse([]);
 
   var headers = data[0];
   var result = [];
@@ -247,9 +257,29 @@ function getWaterDataOneMonth() {
 
   for (var i = 1; i < data.length; i++) {
     var row = data[i];
-    var rowDate = new Date(row[0]);
+    var rowDate;
 
-    if (!isNaN(rowDate.getTime()) && rowDate >= oneMonthAgo) {
+    // Parser Tanggal Aman untuk Format "DD/MM/YYYY, HH:mm:ss"
+    if (row[0] instanceof Date) {
+      rowDate = row[0];
+    } else if (row[0]) {
+      var cleanStr = row[0].toString().replace("'", "").trim();
+      var parts = cleanStr.split(", ");
+      if (parts.length >= 1) {
+        var dateParts = parts[0].split("/");
+        var timeParts = parts[1] ? parts[1].split(":") : [0, 0, 0];
+        rowDate = new Date(
+          parseInt(dateParts[2]),
+          parseInt(dateParts[1]) - 1,
+          parseInt(dateParts[0]),
+          parseInt(timeParts[0]),
+          parseInt(timeParts[1]),
+          parseInt(timeParts[2]) || 0
+        );
+      }
+    }
+
+    if (rowDate && !isNaN(rowDate.getTime()) && rowDate >= oneMonthAgo) {
       var obj = {};
       for (var j = 0; j < headers.length; j++) {
         if (row[j] instanceof Date) {
@@ -261,7 +291,7 @@ function getWaterDataOneMonth() {
       result.push(obj);
     }
   }
-  return result;
+  return createJsonResponse(result);
 }
 
 function createJsonResponse(data) {
@@ -273,39 +303,44 @@ function createJsonResponse(data) {
 // 5. EMAIL OTOMATIS BULANAN & RESET DATA
 // ==========================================
 function autoSendMonthlyReportAndReset() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheetData = ss.getSheetByName(SHEET_SENSOR);
-  var data = sheetData.getDataRange().getValues();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetData = ss.getSheetByName(SHEET_SENSOR);
+  const sheetLog = ss.getSheetByName(SHEET_LOG);
 
-  if (data.length <= 1) return;
-
-  var headers = data[0];
-  var csvContent = headers.join(",") + "\n";
-
-  for (var i = 1; i < data.length; i++) {
-    var row = data[i];
-    var formattedRow = row.map(function (item) {
-      if (item instanceof Date) {
-        return Utilities.formatDate(item, TIME_ZONE, "yyyy-MM-dd HH:mm:ss");
-      }
-      return item;
-    });
-    csvContent += formattedRow.join(",") + "\n";
+  // 1. BUAT LAMPIRAN CSV DARI DATA FEEDER
+  const data = sheetData.getDataRange().getValues();
+  if (data.length <= 1) {
+    Logger.log("Tidak ada data untuk dikirim.");
+    return;
   }
 
-  var lastMonthDate = new Date();
-  lastMonthDate.setMonth(lastMonthDate.getMonth() - 1);
-  var periodName = Utilities.formatDate(lastMonthDate, TIME_ZONE, "yyyy-MM");
+  let csvContent = "";
+  data.forEach(row => {
+    csvContent += row.map(val => `"${val}"`).join(",") + "\n";
+  });
+const d = new Date();
+  d.setMonth(d.getMonth() - 1); // Mundur 1 bulan dari waktu eksekusi
 
-  var blob = Utilities.newBlob(csvContent, "text/csv", "Laporan_KualitasAir_" + periodName + ".csv");
+  const namaBulanLaporan = d.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }); // "Oktober 2026"
+  const formatTahunBulan = d.toISOString().slice(0, 7); // "2026-10"
 
-  var subject = "📊 [AUTOREPORT] Laporan Bulanan Kualitas Air - Periode " + periodName;
-  var body = "Halo Admin,\n\nTerlampir laporan data monitoring kualitas air bulanan untuk periode " + periodName + " sebelum sistem melakukan reset data.\n\nSalam,\nESP32 Water Quality Monitoring System";
-  htmlBody: `
+  // Nama file CSV menyesuaikan bulan data (Laporan_KualitasAir_2026-10.csv)
+  const blob = Utilities.newBlob(csvContent, "text/csv", `Laporan_KualitasAir_${formatTahunBulan}.csv`);
+
+  // 2. KIRIM EMAIL REPORT WITH DEBUGGING
+  if (!EMAIL_PENERIMA || EMAIL_PENERIMA.trim() === "") {
+    Logger.log("❌ ERRROR: Variabel EMAIL_PENERIMA belum diisi/masih kosong!");
+  } else {
+    try {
+      MailApp.sendEmail({
+        to: EMAIL_PENERIMA,
+        subject: `[MONTHLY REPORT] Laporan Kualitas Air Kolam - ${namaBulanLaporan}`,
+        body: `Halo Admin,\n\nBerikut terlampir rekapitulasi data kualitas air kolam untuk periode ${namaBulanLaporan}.\nData pada Spreadsheet telah otomatis di-reset untuk memasuki siklus bulan baru.\n\nTerima kasih,\nSystem Pond Monitoring`,
+        htmlBody: `
           <div style="font-family: Arial, sans-serif; color: #333333; max-width: 600px; line-height: 1.6; border: 1px solid #e0e0e0; border-radius: 8px; padding: 20px;">
             <h2 style="color: #0284c7; margin-top: 0;">🌊 Laporan Bulanan Kualitas Air Kolam</h2>
             <p>Halo <b>Admin</b>,</p>
-            <p>Berikut terlampir rekapitulasi data hasil pemantauan kualitas air kolam selama 1 bulan terakhir (Periode <b>${namaBulan}</b>).</p>
+            <p>Berikut terlampir rekapitulasi data hasil pemantauan kualitas air kolam selama 1 bulan terakhir (Periode <b>${namaBulanLaporan}</b>).</p>
             
             <div style="background-color: #f0f9ff; border-left: 4px solid #0284c7; padding: 12px; margin: 15px 0; border-radius: 4px;">
               ℹ️ <b>Status Sistem:</b> Data pada sheet <i>Data Feeder</i> dan <i>Log Koneksi</i> telah otomatis di-reset untuk memasuki siklus pemantauan bulan baru.
@@ -320,25 +355,28 @@ function autoSendMonthlyReportAndReset() {
             </p>
           </div>
         `,
-
-  MailApp.sendEmail(EMAIL_PENERIMA, subject, body, {
-    attachments: [blob]
-  });
-
-  // Kosongkan Sheet Data Feeder (Menyisakan Header)
-  if (data.length > 1) {
-    sheetData.deleteRows(2, data.length - 1);
+        attachments: [blob]
+      });
+      Logger.log("✅ Email laporan berhasil dikirim untuk periode: " + namaBulanLaporan);
+    } catch (err) {
+      Logger.log("❌ GAGAL KIRIM EMAIL: " + err.toString());
+    }
   }
 
-  // Catat Kejadian ke LogKoneksi
-  var sheetLog = ss.getSheetByName(SHEET_LOG);
+  // 3. RESET SHEET 1: DATA FEEDER (Hapus data dari baris 2 ke bawah)
+  const lastRowData = sheetData.getLastRow();
+  if (lastRowData > 1) {
+    sheetData.deleteRows(2, lastRowData - 1);
+    Logger.log("Tab Data Feeder berhasil di-reset.");
+  }
+
+  // 4. RESET SHEET 2: LOG KONEKSI (Hapus data dari baris 2 ke bawah)
   if (sheetLog) {
-    sheetLog.appendRow([
-      "'" + Utilities.formatDate(new Date(), TIME_ZONE, "dd/MM/yyyy, HH:mm:ss"),
-      "AUTO_MONTHLY_RESET",
-      "SUCCESS",
-      "Laporan CSV terkirim ke " + EMAIL_PENERIMA + " & Data Feeder di-reset"
-    ]);
+    const lastRowLog = sheetLog.getLastRow();
+    if (lastRowLog > 1) {
+      sheetLog.deleteRows(2, lastRowLog - 1);
+      Logger.log("Tab Log Koneksi berhasil di-reset.");
+    }
   }
 }
 
