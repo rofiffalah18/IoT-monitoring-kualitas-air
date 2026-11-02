@@ -1,8 +1,8 @@
 // ==========================================
 // KONFIGURASI GLOBAL & URL APPS SCRIPT
 // ==========================================
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzPcQ6YPapGf37XNUF3TofDkfkWLkMM5ibjBDk301uX7SRv-J9l-ipdxPVhnD2An4XlfQ/exec";
-
+// Ambil URL dari file config.js
+const SCRIPT_URL = CONFIG.SCRIPT_URL;
 const REFRESH_INTERVAL = 10000;
 const COOLDOWN_TIME_MS = 1 * 60 * 1000;
 
